@@ -21,12 +21,12 @@ hsv = cv2.cvtColor(undistorted_img, cv2.COLOR_BGR2HSV)
 print(hsv[518, 750])
 
 #green
-upper = np.array([31, 270, 255])
-lower = np.array([29, 90,	0])
+#upper = np.array([31, 270, 255])
+#lower = np.array([29, 90,	0])
 
 #pink
-#upper = np.array([170, 180, 255])
-#lower = np.array([150, 100,	210])
+upper = np.array([165, 180, 255])
+lower = np.array([155, 100,	160])
 
 mask = cv2.inRange(hsv, lower, upper)
 res = cv2.bitwise_and(undistorted_img, undistorted_img, mask= mask)
