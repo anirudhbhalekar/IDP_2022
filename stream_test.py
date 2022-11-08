@@ -41,6 +41,7 @@ def sobel(image):
     grad = cv2.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
     
     return grad
+    
 while cap.isOpened(): 
     ret, frame = cap.read()
     cv2.imshow('stream', fix(frame, theta))

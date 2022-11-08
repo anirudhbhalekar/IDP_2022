@@ -25,8 +25,8 @@ print(hsv[518, 750])
 #lower = np.array([29, 90,	0])
 
 #pink
-upper = np.array([165, 180, 255])
-lower = np.array([155, 100,	160])
+upper = np.array([165, 255, 255])
+lower = np.array([155, 50,	160])
 
 mask = cv2.inRange(hsv, lower, upper)
 res = cv2.bitwise_and(undistorted_img, undistorted_img, mask= mask)

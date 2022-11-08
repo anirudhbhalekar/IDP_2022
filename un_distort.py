@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import glob
 
-filename = 'orientatio'
+filename = 'framecollection'
 DIM=(1016, 760)
 K= np.array([[567.4130565572482, 0.0, 501.39791714355], [0.0, 567.3325405728447, 412.9039077874256], [0.0, 0.0, 1.0]])
 D=np.array([[-0.05470334257497442], [-0.09142371384400942], [0.17966906821072895], [-0.08708720575337928]])
@@ -18,4 +18,5 @@ def undistort(img_path):
     cv2.destroyAllWindows()
 if __name__ == '__main__':
     for image in glob.glob("{}/*.jpg".format(filename)):
+        print(image)
         undistort(image)

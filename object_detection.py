@@ -72,7 +72,7 @@ def getOrientation(pts, img):
  
 # Load the image
 #img = cv2.imread("framecollection\9_IDP_TEST.jpg")
-file_name = "green1.jpg"
+file_name = "1_pink_arrow.jpg"
 #img = cv2.imread("white.jpg")
 img = undistort(file_name)
 # Was the image there?
