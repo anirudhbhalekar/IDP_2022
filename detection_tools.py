@@ -45,14 +45,9 @@ def binary_image(img):
     return binary
 
 def detect_obj(contours):
-    sz = len(contours)
-    data_pts = np.empty((sz, 2), dtype=np.float64)
-    for i in range(data_pts.shape[0]):
-        data_pts[i,0] = contours[i,0,0]
-        data_pts[i,1] = contours[i,0,1]
-
-    mean = np.empty((0))
-    mean, eigenvectors, eigenvalues = cv2.PCACompute2(data_pts, mean)
+    data = np.array(contours[:, 0, :], dtype = np.float64)
+    initial = np.empty((0))
+    mean, eigenvectors, eigenvalues = cv2.PCACompute2(data, initial)
     angle = 360 / (2 * np.pi) * np.arctan2(eigenvectors[0,1], eigenvectors[0,0]) # orientation in radians
     return mean, angle
 
@@ -101,7 +96,6 @@ print(pa_centre, pa_angle)
 rotated = rotate_image(undistorted_img, gb_angle[0] + 180)
 cv2.imshow("rotated", rotated)
 cv2.waitKey(0)
-
 """
 cv2.imshow('raw', test_img)
 cv2.waitKey(0)
