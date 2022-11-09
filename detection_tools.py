@@ -75,28 +75,31 @@ test_img = cv2.imread(img_path)
 undistorted_img = undistort(test_img)
 edge = edge_detection(undistorted_img)
 
-def find_green_beam(undistorted_img, edge):
+def find_green_beam(undistorted_img):
     upper = np.array([31, 270, 255])
     lower = np.array([29, 90,	0])
     single_colour = detect_colour(undistorted_img, upper, lower)
-    return detect_objects(single_colour, 100, 10000)
+    centre, angle = detect_objects(single_colour, 100, 10000)
+    return centre[0][0][0], centre[0][0][1], angle[0]
 
 def find_pink_arrow(undistorted_img, edge):
     upper = np.array([165, 255, 255])
     lower = np.array([155, 50,	160])
     single_colour = detect_colour(undistorted_img, upper, lower) * edge
-    return detect_objects(single_colour, 100, 10000)
+    centre, angle = detect_objects(single_colour, 100, 10000)
+    return centre[0][0][0], centre[0][0][1], angle[0]
 
-gb_centre, gb_angle = find_green_beam(undistorted_img, edge)
-pa_centre, pa_angle = find_pink_arrow(undistorted_img, edge)
+"""
+gb_x, gb_y, gb_angle = find_green_beam(undistorted_img, edge)
+pa_x, pa_y, pa_angle = find_pink_arrow(undistorted_img, edge)
 
-print(gb_centre, gb_angle)
-print(pa_centre, pa_angle)
+print(gb_x, gb_y, gb_angle)
+print(pa_x, pa_y, pa_angle)
 
-rotated = rotate_image(undistorted_img, gb_angle[0] + 180)
+rotated = rotate_image(undistorted_img, gb_angle + 180)
 cv2.imshow("rotated", rotated)
 cv2.waitKey(0)
-"""
+
 cv2.imshow('raw', test_img)
 cv2.waitKey(0)
 cv2.imshow('undistorted', undistorted_img)
