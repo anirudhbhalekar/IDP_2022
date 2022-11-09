@@ -19,9 +19,11 @@ arrow_y = []
 arrow_angle = []
 
 while cap.isOpened(): 
-    ret, frame = cap.read()
+    for i in range(2):
+        cap.grab()
+
+    ret, frame = cap.retrieve()
     undistorted_img = dt.undistort(frame)
-    _, _, beam_angle = dt.find_green_beam(undistorted_img)
     rotated = dt.rotate_image(undistorted_img, 83.3 + 180)
     
     edge = dt.edge_detection(rotated)
@@ -31,14 +33,11 @@ while cap.isOpened():
     arrow_y.append(y)
     arrow_angle.append(angle)
 
-    x_loc = int(x)
-    y_loc = int(y)
+    #a = input("Hello")
 
-    print(rotated.shape)
-    #
-    rotated[x_loc - 3: x_loc + 3, y_loc - 3 : y_loc + 3, :] = 255
-
-    cv2.imshow('stream', undistorted_img)
+    cv2.imshow('stream', rotated)
+    #cap.release()
+    #cap = cv2.VideoCapture(url)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
     
