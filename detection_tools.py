@@ -1,17 +1,26 @@
 import numpy as np
 import cv2
 
+#parameters for camera 1
 DIM = (1016, 760)
 K = np.array([[567.4130565572482, 0.0, 501.39791714355], [0.0, 567.3325405728447, 412.9039077874256], [0.0, 0.0, 1.0]])
 D = np.array([[-0.05470334257497442], [-0.09142371384400942], [0.17966906821072895], [-0.08708720575337928]])
 
 def undistort(img):
     #function to remove fisheye from an image taken with the overhead camera
-    map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
+    dim1 = img.shape[:2][::-1]  
+
+    scaled_K = K * dim1[0] / DIM[0]
+    scaled_K[2][2] = 1.0  
+
+    new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(scaled_K, D, dim1, np.eye(3), balance = 0)
+    map1, map2 = cv2.fisheye.initUndistortRectifyMap(scaled_K, D, np.eye(3), new_K, dim1, cv2.CV_16SC2)
     undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+    
     return undistorted_img
 
 def detect_colour(img, upper, lower, ret_colour = False):
+    #returns a map of pixels with colour values which lie between the upper and lower bounds
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lower, upper)
     if not ret_colour:
@@ -20,6 +29,7 @@ def detect_colour(img, upper, lower, ret_colour = False):
         return np.expand_dims(mask, -1) * img
 
 def sobel(image):
+    #returns sobel filtered image 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     grad_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
@@ -33,18 +43,22 @@ def sobel(image):
     return grad
 
 def edge_detection(img):
+    #returns map of edges of original image
     grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     dx = cv2.convertScaleAbs(cv2.Sobel(grey, cv2.CV_64F, 1, 0, ksize=3))
     dy = cv2.convertScaleAbs(cv2.Sobel(grey, cv2.CV_64F, 0, 1, ksize=3))
     grad = cv2.addWeighted(dx, 0.5, dy, 0.5, 0)
     return grad
 
-def binary_image(img):
+def binary_image(img, cutoff = 50):
+    #returns a binary map of the inputed image with a greyscale cutoff as specified
     grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    a, binary = cv2.threshold(grey, 50, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    a, binary = cv2.threshold(grey, cutoff, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     return binary
 
 def detect_obj(contours):
+    #detects a single object from a contour map and returns the pixel values of the coordinates
+    #of the centroid and heading 
     data = np.array(contours[:, 0, :], dtype = np.float64)
     initial = np.empty((0))
     mean, eigenvectors, eigenvalues = cv2.PCACompute2(data, initial)
@@ -52,6 +66,9 @@ def detect_obj(contours):
     return mean, angle
 
 def detect_objects(binary_img, min_area = 0, max_area = 999999):
+    #detects all objects with area inbetween the min and max values and returns the pixel values of the coordinates
+    #of the centroid and heading for each
+
     contours, _ = cv2.findContours(binary_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     mean_list = []
     angle_list = []
@@ -65,17 +82,14 @@ def detect_objects(binary_img, min_area = 0, max_area = 999999):
     return mean_list, angle_list
 
 def rotate_image(image, angle):
+    #returns inputed image rotated by the specified angle
     image_center = tuple(np.array(image.shape[1::-1]) / 2)
     rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)       
     result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
     return result
 
-img_path = "1_pink_arrow.jpg"
-test_img = cv2.imread(img_path)
-undistorted_img = undistort(test_img)
-edge = edge_detection(undistorted_img)
-
 def find_green_beam(undistorted_img):
+    #finds the centre green beam from an undistorted image and returns the pixel value of the centre of the beam and it's heading
     upper = np.array([31, 270, 255])
     lower = np.array([29, 90,	0])
     single_colour = detect_colour(undistorted_img, upper, lower)
@@ -83,6 +97,7 @@ def find_green_beam(undistorted_img):
     return centre[0][0][0], centre[0][0][1], angle[0]
 
 def find_pink_arrow(undistorted_img, edge):
+    #finds the pink arrow from an undistorted image and returns the pixel value of the centre of the arrow and it's heading
     upper = np.array([165, 255, 255])
     lower = np.array([155, 50,	160])
     single_colour = detect_colour(undistorted_img, upper, lower) * edge
@@ -90,6 +105,14 @@ def find_pink_arrow(undistorted_img, edge):
     return centre[0][0][0], centre[0][0][1], angle[0]
 
 """
+
+img_path = "1_pink_arrow.jpg"
+test_img = cv2.imread(img_path)
+undistorted_img = undistort(test_img)
+cv2.imshow("Undistorted", undistorted_img)
+cv2.waitKey(0)
+#edge = edge_detection(undistorted_img)
+
 gb_x, gb_y, gb_angle = find_green_beam(undistorted_img, edge)
 pa_x, pa_y, pa_angle = find_pink_arrow(undistorted_img, edge)
 

@@ -5,6 +5,7 @@ import os
 import numpy as np 
 
 import detection_tools as dt
+import vis_tools as vt
 
 url = "http://localhost:8081/stream/video.mjpeg"
 
@@ -33,9 +34,10 @@ while cap.isOpened():
     arrow_y.append(y)
     arrow_angle.append(angle)
 
+    arrowed = vt.draw_arrow(x, y, angle + 180, rotated)
     #a = input("Hello")
 
-    cv2.imshow('stream', rotated)
+    cv2.imshow('stream', arrowed)
     #cap.release()
     #cap = cv2.VideoCapture(url)
     if cv2.waitKey(1) & 0xFF == ord('q'):
