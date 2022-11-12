@@ -184,10 +184,9 @@ def plot_point(image, coords, color = (0,255,0)):
     return image
 
 
-def plot_rectangle(img):
-    l = 10
+def plot_rectangle(img, l = 10, coords = (100,100)):
+
     h,w = img.shape[1], img.shape[0]
-    coords = (int(h/2),int(w/2))
     bot = (coords[0] - l, coords[1] - l)
     top = (coords[0] + l, coords[1] + l)
     img = cv2.rectangle(img, bot, top,(0,255,0),1)
@@ -253,9 +252,11 @@ def stable_marker(curr_markers, prev_markers, count):
 
             return (xn,yn)
 
-def color_mask(img, color, sensitivity):
+def green_mask(img, sensitivity):
     x = None 
 
+def red_mask(img, sensitivity):
+    x = None
 def distance(coord1,coord2):
     x1,y1 = coord1[0], coord1[1]
     x2,y2 = coord2[0], coord2[1]
@@ -270,33 +271,38 @@ def main():
     count = 1 
     cap = cv2.VideoCapture(url)
     p1,p2,p3,p4 = None, None, None, None
-    h,w = fix_frame.shape[0], fix_frame.shape[1]
 
+    initialisation_length = 100
     while cap.isOpened(): 
         
         for i in range(2):
             cap.grab()
-        
-        if count >= 500: 
-            count = 400
-        
+                
         ret, frame = cap.retrieve()
         
         fix_frame = rotate_image(undistort(frame), theta)
+        h,w = fix_frame.shape[0], fix_frame.shape[1]
+        frame3 = fix_frame
 
         frame2 = filter_crop(fix_frame)
         frame2 = detect_edge(frame2)
 
-        line_segments = houghline(frame2, 10)
-        frame3, corners = plot_lanes(fix_frame,line_segments)
+        
+        if count <= initialisation_length:
+            
+            line_segments = houghline(frame2, 10)
+            frame3, corners = plot_lanes(fix_frame,line_segments)
+        
+            m1,m2,m3,m4 = find_markers(frame3, corners)
 
-        m1,m2,m3,m4 = find_markers(frame3, corners)
+            c1 = stable_marker(m1,p1,count)
+            c2 = stable_marker(m2,p2,count)
+            c3 = stable_marker(m3,p3,count)
+            c4 = stable_marker(m4,p4,count)
 
-        c1 = stable_marker(m1,p1,count)
-        c2 = stable_marker(m2,p2,count)
-        c3 = stable_marker(m3,p3,count)
-        c4 = stable_marker(m4,p4,count)
-
+        else: 
+            c1,c2,c3,c4 = p1,p2,p3,p4
+            plot_rectangle(frame3, l=10, coords=(200,200))
 
         plot_point(frame3,c1, color=(0,0,0))
         plot_point(frame3,c2)
