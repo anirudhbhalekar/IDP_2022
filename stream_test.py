@@ -4,15 +4,13 @@ import matplotlib.pyplot as plt
 import os
 import sys
 from PIL import Image
-
+import glob
 import numpy as np 
 
 url = "http://localhost:8081/stream/video.mjpeg"
 
-cap = cv2.VideoCapture(url)
-
-# theta2 = 4 
 theta2 = 0
+#theta2 = 4 
 theta = 84 + theta2
 
 DIM=(1016, 760)
@@ -47,16 +45,13 @@ def undistort(img, balance=0.0, dim2=None, dim3=None):
     
     return undistorted_img
 
-def filter(image):
-    return region_of_interest(detect_edge(mask(image)))
-
 def detect_edge(image):
-    edges = cv2.Canny(image, 200, 400)
+    edges = cv2.Canny(image, 100, 200)
     return edges
 
 def mask(frame):
     img =  (cv2.cvtColor(frame, cv2.COLOR_BGR2HSV_FULL))
-    sensitivity = 15
+    sensitivity = 40    
     lower_white = np.array([0,0,255-sensitivity])
     upper_white = np.array([255,sensitivity,255])    
 
@@ -91,8 +86,10 @@ def region_of_interest(edges):
     return cropped_edges
 
 def detect_corners(frame, superimpose): 
-        
-    corners= cv2.goodFeaturesToTrack(frame, 30, 0.01, 35)
+
+    corners = np.zeros_like(frame)
+    if frame is not None:   
+        corners= cv2.goodFeaturesToTrack(frame, 30, 0.01, 35)
     corner_arr = []
     l = 5
     if corners is not None: 
@@ -107,17 +104,18 @@ def detect_corners(frame, superimpose):
     dst = superimpose 
     return dst, corner_arr
 
-def detect_path(frame):
+def houghline(frame, minL):
     rho = 1 # Pixel precision value
     angle = np.pi/180 # radian precision value 
-    min_votes = 4 # min number of votes hough lines needs
+    min_votes = 10 # min number of votes hough lines needs
 
-    line_segments = cv2.HoughLinesP(frame, rho, angle, min_votes, None, minLineLength= 300, maxLineGap=3)
+    line_segments = cv2.HoughLinesP(frame, rho, angle, min_votes, None, minLineLength= minL, maxLineGap=3)
 
     
     return line_segments
 
-def plot_lanes(frame, lines, color = (50,0,50), l_width = 2, thresh = 1.001):
+def plot_lanes(superimpose, lines, color = (250,0,0), l_width = 2, thresh = 1.01):
+    corner_line_arr = []
     if lines is not None: 
         for line_seg in lines: 
             for x1, y1, x2, y2 in line_seg:                
@@ -125,20 +123,20 @@ def plot_lanes(frame, lines, color = (50,0,50), l_width = 2, thresh = 1.001):
                 line_color = color
                 if x2/x1 >= thresh: 
                     grad = (y2 - y1)/(x2 - x1)
-                    if abs(grad) < 1.25 and abs(grad) > 0.75: 
-                        line_color = (255,255,255)
-                        
+                    if abs(grad) < 1.5 and abs(grad) > 0.5: 
+                        line_color = (0,0,255)
+                        corner_line_arr.append(line_seg)
 
-                line_image = cv2.line(frame, (x1, y1), (x2, y2), line_color, l_width)  
+                line_image = cv2.line(superimpose, (x1, y1), (x2, y2), line_color, l_width)  
     else: 
         print("NONE DETECTED")
-        line_image = np.zeros_like(frame)
+        line_image = np.zeros_like(superimpose)
 
     #line_image = cv2.addWeighted(frame, 0.9, line_image, 1, 1)  
-    return line_image
+    return line_image, corner_line_arr
 
-def no_filter_crop(image): 
-    img = region_of_interest(detect_edge(mask(image)))
+def filter_crop(image): 
+    img = region_of_interest(mask(image))
     return img
 
 def find_pink_arrow(undistorted_img, edge):
@@ -176,22 +174,135 @@ def detect_objects(binary_img, min_area = 0, max_area = 999999):
             angle_list.append(angle)
     return mean_list, angle_list
 
-while cap.isOpened(): 
-    
-    for i in range(4):
-        cap.grab()
-    
-    ret, frame = cap.retrieve()
-    
-    fix_frame = rotate_image(undistort(frame), theta)
+def plot_point(image, coords, color = (0,255,0)): 
+    l = 5
+    if coords is not None: 
+        bot = (coords[0] - l, coords[1] - l)
+        top = (coords[0] + l, coords[1] + l)
+        image = cv2.rectangle(image, bot, top,color,-1)
+ 
+    return image
 
-    frame2 = no_filter_crop(fix_frame)
-    frame2, corner_array = detect_corners(frame2, fix_frame)
 
-    cv2.imshow('stream', frame2)
-  
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+def plot_rectangle(img):
+    l = 10
+    h,w = img.shape[1], img.shape[0]
+    coords = (int(h/2),int(w/2))
+    bot = (coords[0] - l, coords[1] - l)
+    top = (coords[0] + l, coords[1] + l)
+    img = cv2.rectangle(img, bot, top,(0,255,0),1)
+
+    return img
+
+def plot_vline(img, x): 
+    h,w = img.shape[0], img.shape[1]
+    img = cv2.line(img, (x,0),(x,h), color=(0,0,255), thickness=2)
+
+    return img
+
+def plot_hline(img, y): 
+    h,w = img.shape[0], img.shape[1]
     
-cap.release()
-cv2.destroyAllWindows()
+    img = cv2.line(img, (0,y),(w,y), color=(0,0,255), thickness=2)
+
+    return img
+
+def find_markers(img,lines):
+    h,w = img.shape[0], img.shape[1]
+    m1,m2,m3,m4 = None, None, None, None
+    if lines is not None:
+        for line in lines: 
+            for x1,y1,x2,y2 in line:
+                if x1 <= int(w/2) and y1 <= int(h/2):
+                    m1 = (int((x1+x2)/2),int((y1+y2)/2))
+                elif x1 <= int(w/2) and y1 > int(h/2):
+                    m2 = (int((x1+x2)/2),int((y1+y2)/2))
+                elif x1 > int(w/2) and y1 > int(h/2):
+                    m3 = (int((x1+x2)/2),int((y1+y2)/2))
+                elif x1 > int(w/2) and y1 <= int(h/2):
+                    m4 = (int((x1+x2)/2),int((y1+y2)/2))
+                else: continue
+        
+    return m1,m2,m3,m4
+
+
+
+def stable_marker(curr_markers, prev_markers, count):
+    
+    if curr_markers is None and prev_markers is not None: 
+        return prev_markers
+    elif curr_markers is None and prev_markers is None: 
+        return None
+    elif curr_markers is not None and prev_markers is None: 
+        return curr_markers
+    else:
+        x0,y0 = prev_markers[0], prev_markers[1]
+        x1,y1 = curr_markers[0], curr_markers[1]
+
+        if count > 500:
+            return prev_markers
+        else: 
+            assert count != 0 
+            x_diff = int((x1 - x0)/np.sqrt(count))
+            y_diff = int((y1 - y0)/np.sqrt(count))
+
+            xn  = x0 + x_diff
+            yn = y0 + y_diff
+
+            return (xn,yn)
+def main(): 
+    count = 1 
+    cap = cv2.VideoCapture(url)
+    p1,p2,p3,p4 = None, None, None, None
+
+    while cap.isOpened(): 
+        
+        for i in range(2):
+            cap.grab()
+        
+        if count == 10000: 
+            count = 5
+        
+        ret, frame = cap.retrieve()
+        
+        fix_frame = rotate_image(undistort(frame), theta)
+
+        frame2 = filter_crop(fix_frame)
+        frame2 = detect_edge(frame2)
+
+        line_segments = houghline(frame2, 10)
+        frame3, corners = plot_lanes(fix_frame,line_segments)
+
+        m1,m2,m3,m4 = find_markers(frame3, corners)
+
+        c1 = stable_marker(m1,p1,count)
+        c2 = stable_marker(m2,p2,count)
+        c3 = stable_marker(m3,p3,count)
+        c4 = stable_marker(m4,p4,count)
+
+
+        plot_point(frame3,c1, color=(0,0,0))
+        plot_point(frame3,c2)
+        plot_point(frame3,c3)
+        plot_point(frame3,c4)
+
+        h,w = fix_frame.shape[0], fix_frame.shape[1]
+
+        frame3 = plot_hline(frame3, int(h/2))
+        frame3 = plot_vline(frame3, int(w/2))
+        
+        cv2.imshow('stream', frame3)
+
+        p1,p2,p3,p4 = c1,c2,c3,c4
+        
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        count += 1
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+
+   main()
+
