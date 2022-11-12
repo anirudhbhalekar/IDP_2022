@@ -10,7 +10,7 @@ import numpy as np
 url = "http://localhost:8081/stream/video.mjpeg"
 
 theta2 = 0
-theta2 = 4 
+#theta2 = 4 
 theta = 84 + theta2
 
 DIM=(1016, 760)
@@ -116,6 +116,10 @@ def houghline(frame, minL):
 
 def plot_lanes(superimpose, lines, color = (250,0,0), l_width = 2, thresh = 1.01):
     corner_line_arr = []
+    zone_line_arr = []
+
+    h,w = superimpose.shape[0], superimpose.shape[1]
+
     if lines is not None: 
         for line_seg in lines: 
             for x1, y1, x2, y2 in line_seg:                
@@ -127,6 +131,10 @@ def plot_lanes(superimpose, lines, color = (250,0,0), l_width = 2, thresh = 1.01
                         line_color = (0,0,255)
                         corner_line_arr.append(line_seg)
 
+                if y2/y1 >= thresh:
+                    grad = (x2 - x1)/(y2 - y1)
+                    if abs(grad) < 1 and min(y2,y1) < h/4: 
+                        line_color = (255,0,255)
                 line_image = cv2.line(superimpose, (x1, y1), (x2, y2), line_color, l_width)  
     else: 
         print("NONE DETECTED")
@@ -252,27 +260,26 @@ def stable_marker(curr_markers, prev_markers, count):
 
             return (xn,yn)
 
-def green_mask(img, sensitivity):
-    x = None 
 
-def red_mask(img, sensitivity):
-    x = None
 def distance(coord1,coord2):
-    x1,y1 = coord1[0], coord1[1]
-    x2,y2 = coord2[0], coord2[1]
+    d = -1
+    if coord1 and coord2 is not None: 
+        x1,y1 = coord1[0], coord1[1]
+        x2,y2 = coord2[0], coord2[1]
 
-    x_d = abs(x2 - x1)
-    y_d = abs(y2 - y1)
-    d = np.sqrt(np.square(y_d) + np.square(x_d))
+        x_d = abs(x2 - x1)
+        y_d = abs(y2 - y1)
+        d = np.sqrt(np.square(y_d) + np.square(x_d))
 
     return d
+
 
 def main(): 
     count = 1 
     cap = cv2.VideoCapture(url)
     p1,p2,p3,p4 = None, None, None, None
 
-    initialisation_length = 100
+    initialisation_length = 500
     while cap.isOpened(): 
         
         for i in range(2):
@@ -302,7 +309,6 @@ def main():
 
         else: 
             c1,c2,c3,c4 = p1,p2,p3,p4
-            plot_rectangle(frame3, l=10, coords=(200,200))
 
         plot_point(frame3,c1, color=(0,0,0))
         plot_point(frame3,c2)
@@ -311,11 +317,15 @@ def main():
 
 
         frame3 = plot_hline(frame3, int(h/2))
-        frame3 = plot_vline(frame3, int(w/2))
+        frame3 = plot_vline(frame3, int(w/2)) 
+        frame3 = plot_hline(frame3, int(h/4))
+        
+        p1,p2,p3,p4 = c1,c2,c3,c4
+        
         
         cv2.imshow('stream', frame3)
 
-        p1,p2,p3,p4 = c1,c2,c3,c4
+        
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
