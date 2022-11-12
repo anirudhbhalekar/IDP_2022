@@ -252,6 +252,16 @@ def stable_marker(curr_markers, prev_markers, count):
             yn = y0 + y_diff
 
             return (xn,yn)
+
+def distance(coord1,coord2):
+    x1,y1 = coord1[0], coord1[1]
+    x2,y2 = coord2[0], coord2[1]
+
+    x_d = abs(x2 - x1)
+    y_d = abs(y2 - y1)
+    d = np.sqrt(np.square(y_d) + np.square(x_d))
+
+    return d
 def main(): 
     count = 1 
     cap = cv2.VideoCapture(url)
