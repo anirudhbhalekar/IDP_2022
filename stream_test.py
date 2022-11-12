@@ -253,6 +253,9 @@ def stable_marker(curr_markers, prev_markers, count):
 
             return (xn,yn)
 
+def color_mask(img, color, sensitivity):
+    x = None 
+
 def distance(coord1,coord2):
     x1,y1 = coord1[0], coord1[1]
     x2,y2 = coord2[0], coord2[1]
@@ -262,6 +265,7 @@ def distance(coord1,coord2):
     d = np.sqrt(np.square(y_d) + np.square(x_d))
 
     return d
+
 def main(): 
     count = 1 
     cap = cv2.VideoCapture(url)
