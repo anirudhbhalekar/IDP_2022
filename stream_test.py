@@ -122,26 +122,28 @@ def plot_lanes(superimpose, lines, color = (250,0,0), l_width = 2, thresh = 1.01
 
     if lines is not None: 
         for line_seg in lines: 
-            for x1, y1, x2, y2 in line_seg:                
-                
+            for x1, y1, x2, y2 in line_seg:                                
                 line_color = color
-                if x2/x1 >= thresh: 
+                if max(x2,x1)/min(x1,x2) > thresh: 
                     grad = (y2 - y1)/(x2 - x1)
                     if abs(grad) < 1.5 and abs(grad) > 0.5: 
                         line_color = (0,0,255)
                         corner_line_arr.append(line_seg)
-
-                if y2/y1 >= thresh:
+                    
+                if max(y2,y1)/min(y2,y1) > thresh:
                     grad = (x2 - x1)/(y2 - y1)
-                    if abs(grad) < 1 and min(y2,y1) < h/4: 
-                        line_color = (255,0,255)
+                    if abs(grad) < 0.1 and min(y2,y1) < h/4: 
+                        line_color = (100,50,100)
+                        zone_line_arr.append(line_seg)
+
+                
                 line_image = cv2.line(superimpose, (x1, y1), (x2, y2), line_color, l_width)  
     else: 
         print("NONE DETECTED")
         line_image = np.zeros_like(superimpose)
 
     #line_image = cv2.addWeighted(frame, 0.9, line_image, 1, 1)  
-    return line_image, corner_line_arr
+    return line_image, corner_line_arr, zone_line_arr
 
 def filter_crop(image): 
     img = region_of_interest(mask(image))
@@ -232,7 +234,26 @@ def find_markers(img,lines):
         
     return m1,m2,m3,m4
 
-
+def find_zones(img, zone_array):
+    
+    h,w = img.shape[0], img.shape[1]
+    g,r = None, None
+    min = int(h)
+    if zone_array is not None: 
+        for line in zone_array: 
+            for x1,y1,x2,y2 in line: 
+                
+                if np.minimum(y1,y2) <= min: 
+                    min = np.minimum(y1,y2)
+                
+                if x1 > int(w/2) + 100: 
+                    g = (int((x1+x2)/2), min) 
+                elif x1 < int(w/2) - 100: 
+                    r = (int((x1+x2)/2), min) 
+                else: 
+                    pass 
+            
+    return g,r 
 
 def stable_marker(curr_markers, prev_markers, count):
     
@@ -250,8 +271,8 @@ def stable_marker(curr_markers, prev_markers, count):
             return prev_markers
         else: 
             assert count != 0 
-            xp = (x1 - x0) * np.sqrt(1)/np.sqrt(count)
-            yp = (y1 - y0) * np.sqrt(1)/np.sqrt(count)
+            xp = (x1 - x0) * np.sqrt(1)/np.sqrt(np.sqrt(count*100))
+            yp = (y1 - y0) * np.sqrt(1)/np.sqrt(np.sqrt(count*100))
             x_diff = int(xp)
             y_diff = int(yp)
 
@@ -277,7 +298,7 @@ def distance(coord1,coord2):
 def main(): 
     count = 1 
     cap = cv2.VideoCapture(url)
-    p1,p2,p3,p4 = None, None, None, None
+    p1,p2,p3,p4,r0,g0 = None, None, None, None, None, None
 
     initialisation_length = 500
     while cap.isOpened(): 
@@ -298,10 +319,13 @@ def main():
         if count <= initialisation_length:
             
             line_segments = houghline(frame2, 10)
-            frame3, corners = plot_lanes(fix_frame,line_segments)
+            frame3, corners, zones = plot_lanes(fix_frame,line_segments)
         
             m1,m2,m3,m4 = find_markers(frame3, corners)
+            r1,g1 = find_zones(frame3, zones)
 
+            rp = stable_marker(r1, r0, count)
+            gp = stable_marker(g1, g0, count)
             c1 = stable_marker(m1,p1,count)
             c2 = stable_marker(m2,p2,count)
             c3 = stable_marker(m3,p3,count)
@@ -309,19 +333,21 @@ def main():
 
         else: 
             c1,c2,c3,c4 = p1,p2,p3,p4
+            rp, gp = r0, g0
 
         plot_point(frame3,c1, color=(0,0,0))
         plot_point(frame3,c2)
         plot_point(frame3,c3)
         plot_point(frame3,c4)
-
+        plot_point(frame3, rp, color=(100,0,100))
+        plot_point(frame3, gp, color=(100,0,100))
 
         frame3 = plot_hline(frame3, int(h/2))
         frame3 = plot_vline(frame3, int(w/2)) 
         frame3 = plot_hline(frame3, int(h/4))
-        
+        frame3 = plot_vline(frame3, int(w/2) + 100)
         p1,p2,p3,p4 = c1,c2,c3,c4
-        
+        r0,g0 = rp, gp
         
         cv2.imshow('stream', frame3)
 
