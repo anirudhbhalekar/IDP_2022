@@ -271,8 +271,8 @@ def stable_marker(curr_markers, prev_markers, count):
             return prev_markers
         else: 
             assert count != 0 
-            xp = (x1 - x0) * np.sqrt(1)/np.sqrt(np.sqrt(count*100))
-            yp = (y1 - y0) * np.sqrt(1)/np.sqrt(np.sqrt(count*100))
+            xp = (x1 - x0) * np.sqrt(1)/np.sqrt(np.sqrt(count*10))
+            yp = (y1 - y0) * np.sqrt(1)/np.sqrt(np.sqrt(count*10))
             x_diff = int(xp)
             y_diff = int(yp)
 
