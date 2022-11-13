@@ -326,6 +326,7 @@ def main():
 
             rp = stable_marker(r1, r0, count)
             gp = stable_marker(g1, g0, count)
+            
             c1 = stable_marker(m1,p1,count)
             c2 = stable_marker(m2,p2,count)
             c3 = stable_marker(m3,p3,count)
@@ -345,7 +346,7 @@ def main():
         frame3 = plot_hline(frame3, int(h/2))
         frame3 = plot_vline(frame3, int(w/2)) 
         frame3 = plot_hline(frame3, int(h/4))
-        frame3 = plot_vline(frame3, int(w/2) + 100)
+        
         p1,p2,p3,p4 = c1,c2,c3,c4
         r0,g0 = rp, gp
         
