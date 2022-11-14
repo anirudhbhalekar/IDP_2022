@@ -109,6 +109,6 @@ for i, c in enumerate(contours):
 cv2.imshow('Output Image', img)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
-  
+
 # Save the output image to the current directory
 #cv.imwrite("output_img.jpg", img)

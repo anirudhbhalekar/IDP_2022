@@ -10,7 +10,7 @@ import vis_tools as vt
 url = "http://localhost:8081/stream/video.mjpeg"
 
 cap = cv2.VideoCapture(url)
-theta = 84
+theta = 88
 DIM=(1016, 760)
 K= np.array([[567.4130565572482, 0.0, 501.39791714355], [0.0, 567.3325405728447, 412.9039077874256], [0.0, 0.0, 1.0]])
 D=np.array([[-0.05470334257497442], [-0.09142371384400942], [0.17966906821072895], [-0.08708720575337928]])
@@ -25,16 +25,22 @@ while cap.isOpened():
 
     ret, frame = cap.retrieve()
     undistorted_img = dt.undistort(frame)
-    rotated = dt.rotate_image(undistorted_img, 83.3 + 180)
-    
+    rotated = dt.rotate_image(undistorted_img, theta)
     edge = dt.edge_detection(rotated)
-    x, y, angle = dt.find_pink_arrow(rotated, edge)
-    
-    arrow_x.append(x)
-    arrow_y.append(y)
-    arrow_angle.append(angle)
 
-    arrowed = vt.draw_arrow(x, y, angle + 180, rotated)
+    search_region = dt.no_filter_crop(rotated)
+    rotated_corners, _ = dt.detect_corners(search_region, rotated)
+    try:
+        x, y, angle = dt.find_pink_arrow(rotated, edge)
+        arrow_x.append(x)
+        arrow_y.append(y)
+        arrow_angle.append(angle)
+
+        arrowed = vt.draw_arrow(x, y, angle + 180, rotated_corners)
+
+    except IndexError:
+        arrowed = rotated      
+
     #a = input("Hello")
 
     cv2.imshow('stream', arrowed)
