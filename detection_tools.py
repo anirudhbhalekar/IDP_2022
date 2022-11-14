@@ -104,6 +104,80 @@ def find_pink_arrow(undistorted_img, edge):
     centre, angle = detect_objects(single_colour, 100, 10000)
     return centre[0][0][0], centre[0][0][1], angle[0]
 
+def detect_corners(frame, superimpose): 
+        
+    corners= cv2.goodFeaturesToTrack(frame, 30, 0.01, 35)
+    corner_arr = []
+    l = 5
+    if corners is not None: 
+        for corner in corners:
+            x,y= corner[0]
+            x= int(x)
+            y= int(y)
+            corner_arr.append((x,y))
+            superimpose = cv2.rectangle(superimpose, (x-l,y-l),(x+l,y+l),(255,0,0),-1)
+    
+
+    dst = superimpose 
+    return dst, corner_arr
+
+def no_filter_crop(image): 
+    img = region_of_interest(detect_edge(mask(image)))
+    return img
+
+def region_of_interest(edges):
+    
+    # this function will mask regions of interest by ANDing a polygon of that shape
+
+    top_height_parameter = 0.2 # percent to shave off the top
+    bot_height_parameter = 0.1  # percent to shave off the bottom
+
+    right_width_parameter = 0.5 # percent to shave from the right
+    left_width_parameter = 0.1
+    h,w = edges.shape
+    mask = np.zeros_like(edges) 
+    
+    # Polygon creation
+
+    polygon = np.array([[
+        (0, h * top_height_parameter),
+        (w, h * top_height_parameter),
+        (w, h * (1 - bot_height_parameter)),
+        (0, h * (1 - bot_height_parameter)),
+    ]], np.int32)
+
+    cv2.fillPoly(mask, polygon, 255)
+    cropped_edges = cv2.bitwise_and(edges, mask)
+
+    return cropped_edges
+
+def detect_edge(image):
+    edges = cv2.Canny(image, 200, 400)
+    return edges
+
+def mask(frame):
+    img =  (cv2.cvtColor(frame, cv2.COLOR_BGR2HSV_FULL))
+    sensitivity = 15
+    lower_white = np.array([0,0,255-sensitivity])
+    upper_white = np.array([255,sensitivity,255])    
+
+    mask = cv2.inRange(img, lower_white, upper_white)
+    return mask
+
+def route(x, y, target_x, target_y):
+    dx = target_x - x
+    dy = target_y - y
+    distance = np.sqrt(dx**2 + dy**2)
+    heading = np.arctan(dx / dy) * 180 / np.pi
+    if dy < 0 and dx >= 0:
+        heading = 180 + heading
+    if dy < 0 and dx < 0:
+        heading = 180 + heading
+    if dy >= 0 and dx < 0:
+        heading = 360 + heading
+    return distance, heading 
+
+print(route(0, 0, -1, 5))
 """
 
 img_path = "1_pink_arrow.jpg"
