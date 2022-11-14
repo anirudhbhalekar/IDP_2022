@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
-
+import vis_tools as vt
+import math
 #parameters for camera 1
 DIM = (1016, 760)
 K = np.array([[567.4130565572482, 0.0, 501.39791714355], [0.0, 567.3325405728447, 412.9039077874256], [0.0, 0.0, 1.0]])
@@ -104,8 +105,16 @@ def find_pink_arrow(undistorted_img, edge):
     centre, angle = detect_objects(single_colour, 100, 10000)
     return centre[0][0][0], centre[0][0][1], angle[0]
 
-def detect_corners(frame, superimpose): 
-        
+def find_blue_blocks(undistorted_img):
+    upper = np.array([105, 240, 255])
+    lower = np.array([95, 180,	0])
+
+    blues = detect_colour(undistorted_img, upper, lower, False)
+
+    centre_list, _ = detect_objects(blues)
+    return centre_list
+
+def detect_corners(frame, superimpose):         
     corners= cv2.goodFeaturesToTrack(frame, 30, 0.01, 35)
     corner_arr = []
     l = 5
@@ -177,7 +186,35 @@ def route(x, y, target_x, target_y):
         heading = 360 + heading
     return distance, heading 
 
-print(route(0, 0, -1, 5))
+def plot_pink_arrow_direction(img, target_x, target_y):
+    target = (target_x, target_y)
+    edge = edge_detection(img)
+    arrow_x, arrow_y, arrow_angle = find_pink_arrow(img, edge)
+    arrow = np.array([arrow_x, arrow_y])
+    arrow_angle += 180
+    img = vt.draw_arrow(arrow_x, arrow_y, arrow_angle, img, 30)
+    
+    img = vt.plot_rectangle(img, 10, target)
+
+    delta = target - arrow
+    distance = np.sqrt(np.sum(np.square(delta)))
+    angle = math.atan(delta[1] / delta[0]) * 180 / math.pi
+
+    if delta[0] < 0:
+        angle += 180
+
+    img = vt.draw_arrow(arrow_x, arrow_y, angle, img, distance)
+
+    rotation = 720 + angle - arrow_angle
+    rotation = rotation % 360
+    return img, distance, rotation
+
+def arrow_to_blocks(img):
+    block_locs = find_blue_blocks(img)
+    first_block = block_locs[1][0]
+    block_x, block_y = first_block[0], first_block[1]
+    plot_pink_arrow_direction(img, block_x, block_y)
+    return img
 """
 
 img_path = "1_pink_arrow.jpg"
