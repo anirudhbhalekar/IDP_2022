@@ -10,7 +10,7 @@ import numpy as np
 url = "http://localhost:8081/stream/video.mjpeg"
 
 theta2 = 0
-#theta2 = 4 
+theta2 = 4 
 theta = 83.5 + theta2
 
 DIM=(1016, 760)
@@ -57,7 +57,6 @@ def mask(frame):
 
     mask = cv2.inRange(img, lower_white, upper_white)
     return mask
-
 
 def region_of_interest(edges):
     
@@ -193,7 +192,6 @@ def plot_point(image, coords, color = (0,255,0)):
  
     return image
 
-
 def plot_rectangle(img, l = 10, coords = (100,100)):
 
     h,w = img.shape[1], img.shape[0]
@@ -318,7 +316,6 @@ def distance(coord1,coord2):
         d = np.sqrt(np.square(y_d) + np.square(x_d))
 
     return d
-
 
 def main(): 
     count = 1 
