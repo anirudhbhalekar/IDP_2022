@@ -372,6 +372,7 @@ def main():
         plot_point(frame3,c2)
         plot_point(frame3,c3)
         plot_point(frame3,c4)
+        
         plot_point(frame3, rp, color=(100,0,250))
         plot_point(frame3, gp, color=(100,0,250))
         plot_point(frame3, tt1,color= (0,0,250))
@@ -392,6 +393,7 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         count += 1
+    
     cap.release()
     cv2.destroyAllWindows()
 
