@@ -263,21 +263,22 @@ def tunnel_marker(img, all_lines):
     max_y, min_y = (0,0), (0, int(h)) 
     z_max, z_min = 0, int(h)
 
-    for line in all_lines: 
-        for x0,y0,x1,y1 in line: 
+    if all_lines is not None: 
+        for line in all_lines: 
+            for x0,y0,x1,y1 in line: 
 
-            x_m, y_m = int((x0 + x1)/2) , int((y0 + y1)/2)
+                x_m, y_m = int((x0 + x1)/2) , int((y0 + y1)/2)
 
-            if x_m > w/2 and y_m < h/2: 
-                if y_m > z_max: 
-                    max_y = (x_m, np.maximum(y0,y1))
-                    z_max = y_m
+                if x_m > w/2 and y_m < h/2: 
+                    if y_m > z_max: 
+                        max_y = (x_m, np.maximum(y0,y1))
+                        z_max = y_m
 
-            if x_m > w/2 and y_m > h/2: 
-                if y_m < z_min: 
-                    min_y = (x_m, np.minimum(y0,y1))
-                    z_min = y_m
-    
+                if x_m > w/2 and y_m > h/2: 
+                    if y_m < z_min: 
+                        min_y = (x_m, np.minimum(y0,y1))
+                        z_min = y_m
+        
     return max_y, min_y
 
 def stable_marker(curr_markers, prev_markers, count):
@@ -328,7 +329,7 @@ def main():
     initialisation_length = 100
     while cap.isOpened(): 
         
-        for i in range(4):
+        for i in range(2):
             cap.grab()
                 
         ret, frame = cap.retrieve()
@@ -367,7 +368,7 @@ def main():
             rp, gp = r0, g0
             tt1, tt2 = to1, to2  
 
-        plot_point(frame3,c1, color=(0,0,0))
+        plot_point(frame3,c1)
         plot_point(frame3,c2)
         plot_point(frame3,c3)
         plot_point(frame3,c4)
