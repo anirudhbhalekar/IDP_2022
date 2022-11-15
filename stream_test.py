@@ -10,7 +10,7 @@ import numpy as np
 url = "http://localhost:8081/stream/video.mjpeg"
 
 theta2 = 0
-theta2 = 4 
+#theta2 = 4 
 theta = 83.5 + theta2
 
 DIM=(1016, 760)
