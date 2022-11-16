@@ -63,6 +63,7 @@ def detect_obj(contours):
     data = np.array(contours[:, 0, :], dtype = np.float64)
     initial = np.empty((0))
     mean, eigenvectors, eigenvalues = cv2.PCACompute2(data, initial)
+    print(mean)
     angle = 360 / (2 * np.pi) * np.arctan2(eigenvectors[0,1], eigenvectors[0,0]) # orientation in radians
     return mean, angle
 
@@ -97,22 +98,48 @@ def find_green_beam(undistorted_img):
     centre, angle = detect_objects(single_colour, 100, 10000)
     return centre[0][0][0], centre[0][0][1], angle[0]
 
-def find_pink_arrow(undistorted_img, edge):
+def find_pink_arrow(undistorted_img, edge, ret_pink = False):
     #finds the pink arrow from an undistorted image and returns the pixel value of the centre of the arrow and it's heading
     upper = np.array([165, 255, 255])
-    lower = np.array([155, 50,	160])
-    single_colour = detect_colour(undistorted_img, upper, lower) * edge
+    lower = np.array([155, 100,	160])
+    single_colour = detect_colour(undistorted_img, upper, lower)
     centre, angle = detect_objects(single_colour, 100, 10000)
-    return centre[0][0][0], centre[0][0][1], angle[0]
+    if not ret_pink:
+        return centre[0][0][0], centre[0][0][1], angle[0]
+    return single_colour
 
-def find_blue_blocks(undistorted_img):
-    upper = np.array([105, 240, 255])
-    lower = np.array([95, 180,	0])
+def corrected_pink_arrow(undistorted_img, edge, prev_angle):
+    x, y, raw_angle = find_pink_arrow(undistorted_img, edge)
+    angle_array = np.array([0, 180]) + raw_angle
+    
+    deltas = np.abs(angle_array - prev_angle)
+    big = np.argmax(deltas)
+    deltas[big] = 360 - deltas[big]
+    quad = np.argmin(deltas)
+    #print(deltas)
+    angle = angle_array[quad]
+    prev_angle = angle
+    return x, y, angle, prev_angle
+
+
+#old blue
+#upper = np.array([105, 240, 255])
+#lower = np.array([95, 180,	0])
+
+#upper = np.array([120, 180, 255])
+#lower = np.array([90, 120,	0])
+
+def find_blue_blocks(undistorted_img, return_blue = False):
+    upper = np.array([120, 360, 360])
+    lower = np.array([100, 0,	0])
 
     blues = detect_colour(undistorted_img, upper, lower, False)
 
-    centre_list, _ = detect_objects(blues)
-    return centre_list
+    centre_list, _ = detect_objects(blues, 70, 100000)
+    if return_blue:
+        return centre_list, blues
+    else:
+        return centre_list
 
 def detect_corners(frame, superimpose):         
     corners= cv2.goodFeaturesToTrack(frame, 30, 0.01, 35)
@@ -126,7 +153,6 @@ def detect_corners(frame, superimpose):
             corner_arr.append((x,y))
             superimpose = cv2.rectangle(superimpose, (x-l,y-l),(x+l,y+l),(255,0,0),-1)
     
-
     dst = superimpose 
     return dst, corner_arr
 
@@ -186,12 +212,19 @@ def route(x, y, target_x, target_y):
         heading = 360 + heading
     return distance, heading 
 
-def plot_pink_arrow_direction(img, target_x, target_y):
+def pink_arrow_line(img, prev_angle):
+    edge = edge_detection(img)
+    arrow_x, arrow_y, arrow_angle, prev_angle = corrected_pink_arrow(img, edge, prev_angle)
+    img = vt.draw_arrow(arrow_x, arrow_y, arrow_angle, img, 30)
+    arrow = np.array([arrow_x, arrow_y])
+    return img, arrow
+
+def plot_pink_arrow_direction(img, target_x, target_y, prev_angle):
     target = (target_x, target_y)
     edge = edge_detection(img)
-    arrow_x, arrow_y, arrow_angle = find_pink_arrow(img, edge)
+    arrow_x, arrow_y, arrow_angle, prev_angle = corrected_pink_arrow(img, edge, prev_angle)
     arrow = np.array([arrow_x, arrow_y])
-    arrow_angle += 180
+
     img = vt.draw_arrow(arrow_x, arrow_y, arrow_angle, img, 30)
     
     img = vt.plot_rectangle(img, 10, target)
@@ -207,14 +240,29 @@ def plot_pink_arrow_direction(img, target_x, target_y):
 
     rotation = 720 + angle - arrow_angle
     rotation = rotation % 360
-    return img, distance, rotation
+    return img, distance, rotation, prev_angle
 
-def arrow_to_blocks(img):
+def arrow_to_blocks(img, prev_angle):
     block_locs = find_blue_blocks(img)
     first_block = block_locs[1][0]
-    block_x, block_y = first_block[0], first_block[1]
-    plot_pink_arrow_direction(img, block_x, block_y)
+    block_x, block_y = int(first_block[0]), int(first_block[1])
+    return plot_pink_arrow_direction(img, block_x, block_y, prev_angle)
+
+def arrow_to_all_blocks(img, prev_angle):
+    block_locs = find_blue_blocks(img)
+    img, arrow = pink_arrow_line(img, prev_angle)
+    for block in block_locs:
+        delta = block[0] - arrow
+        distance = np.sqrt(np.sum(np.square(delta)))
+        angle = math.atan(delta[1] / delta[0]) * 180 / math.pi
+
+        if delta[0] < 0:
+            angle += 180
+
+        img = vt.draw_arrow(arrow[0], arrow[1], angle, img, distance)
     return img
+
+
 """
 
 img_path = "1_pink_arrow.jpg"
