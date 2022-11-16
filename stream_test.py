@@ -11,7 +11,7 @@ url = "http://localhost:8081/stream/video.mjpeg"
 
 theta2 = 0
 #theta2 = 4 
-theta = 84 + theta2
+theta = 83.5 + theta2
 
 DIM=(1016, 760)
 K= np.array([[567.4130565572482, 0.0, 501.39791714355], [0.0, 567.3325405728447, 412.9039077874256], [0.0, 0.0, 1.0]])
@@ -58,7 +58,6 @@ def mask(frame):
     mask = cv2.inRange(img, lower_white, upper_white)
     return mask
 
-
 def region_of_interest(edges):
     
     # this function will mask regions of interest by ANDing a polygon of that shape
@@ -66,8 +65,7 @@ def region_of_interest(edges):
     top_height_parameter = 0.2 # percent to shave off the top
     bot_height_parameter = 0.1  # percent to shave off the bottom
 
-    right_width_parameter = 0.5 # percent to shave from the right
-    left_width_parameter = 0.1
+   
     h,w = edges.shape
     mask = np.zeros_like(edges) 
     
@@ -114,7 +112,7 @@ def houghline(frame, minL):
     
     return line_segments
 
-def plot_lanes(superimpose, lines, color = (250,0,0), l_width = 2, thresh = 1.01):
+def plot_lanes(superimpose, lines, color = (250,150,0), l_width = 2, thresh = 1.01):
     corner_line_arr = []
     zone_line_arr = []
 
@@ -135,6 +133,7 @@ def plot_lanes(superimpose, lines, color = (250,0,0), l_width = 2, thresh = 1.01
                     if abs(grad) < 0.1 and min(y2,y1) < h/4: 
                         line_color = (100,50,100)
                         zone_line_arr.append(line_seg)
+                    
 
                 
                 line_image = cv2.line(superimpose, (x1, y1), (x2, y2), line_color, l_width)  
@@ -192,7 +191,6 @@ def plot_point(image, coords, color = (0,255,0)):
         image = cv2.rectangle(image, bot, top,color,-1)
  
     return image
-
 
 def plot_rectangle(img, l = 10, coords = (100,100)):
 
@@ -255,6 +253,32 @@ def find_zones(img, zone_array):
             
     return g,r 
 
+def tunnel_marker(img, all_lines): 
+
+    h,w = img.shape[0], img.shape[1]
+    
+    tunnel_top, tunnel_bot = None, None
+    max_y, min_y = (0,0), (0, int(h)) 
+    z_max, z_min = 0, int(h)
+
+    if all_lines is not None: 
+        for line in all_lines: 
+            for x0,y0,x1,y1 in line: 
+
+                x_m, y_m = int((x0 + x1)/2) , int((y0 + y1)/2)
+
+                if x_m > w/2 and y_m < h/2: 
+                    if y_m > z_max: 
+                        max_y = (x_m, np.maximum(y0,y1))
+                        z_max = y_m
+
+                if x_m > w/2 and y_m > h/2: 
+                    if y_m < z_min: 
+                        min_y = (x_m, np.minimum(y0,y1))
+                        z_min = y_m
+        
+    return max_y, min_y
+
 def stable_marker(curr_markers, prev_markers, count):
     
     if curr_markers is None and prev_markers is not None: 
@@ -281,7 +305,6 @@ def stable_marker(curr_markers, prev_markers, count):
 
             return (xn,yn)
 
-
 def distance(coord1,coord2):
     d = -1
     if coord1 and coord2 is not None: 
@@ -294,13 +317,13 @@ def distance(coord1,coord2):
 
     return d
 
-
 def main(): 
     count = 1 
     cap = cv2.VideoCapture(url)
     p1,p2,p3,p4,r0,g0 = None, None, None, None, None, None
+    to1, to2 = None, None
 
-    initialisation_length = 500
+    initialisation_length = 100
     while cap.isOpened(): 
         
         for i in range(2):
@@ -323,6 +346,8 @@ def main():
         
             m1,m2,m3,m4 = find_markers(frame3, corners)
             r1,g1 = find_zones(frame3, zones)
+            t1,t2 = tunnel_marker(frame3, line_segments)
+
 
             rp = stable_marker(r1, r0, count)
             gp = stable_marker(g1, g0, count)
@@ -332,16 +357,23 @@ def main():
             c3 = stable_marker(m3,p3,count)
             c4 = stable_marker(m4,p4,count)
 
+            tt1 = stable_marker(t1, to1, count)
+            tt2 = stable_marker(t2, to2, count)
+
         else: 
             c1,c2,c3,c4 = p1,p2,p3,p4
             rp, gp = r0, g0
+            tt1, tt2 = to1, to2  
 
-        plot_point(frame3,c1, color=(0,0,0))
+        plot_point(frame3,c1)
         plot_point(frame3,c2)
         plot_point(frame3,c3)
         plot_point(frame3,c4)
-        plot_point(frame3, rp, color=(100,0,100))
-        plot_point(frame3, gp, color=(100,0,100))
+        
+        plot_point(frame3, rp, color=(100,0,250))
+        plot_point(frame3, gp, color=(100,0,250))
+        plot_point(frame3, tt1,color= (0,0,250))
+        plot_point(frame3, tt2,color= (0,0,250))
 
         frame3 = plot_hline(frame3, int(h/2))
         frame3 = plot_vline(frame3, int(w/2)) 
@@ -349,6 +381,7 @@ def main():
         
         p1,p2,p3,p4 = c1,c2,c3,c4
         r0,g0 = rp, gp
+        to1, to2 = tt1, tt2
         
         cv2.imshow('stream', frame3)
 
@@ -357,6 +390,7 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         count += 1
+    
     cap.release()
     cv2.destroyAllWindows()
 
