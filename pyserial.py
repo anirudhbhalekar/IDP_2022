@@ -34,3 +34,4 @@ while 1:
             
     else: 
         print(ser.read())
+        time.sleep(5)
