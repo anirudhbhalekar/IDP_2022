@@ -33,5 +33,6 @@ while 1:
             ser.write(serial_data)
             
     else: 
+        ser.read_all()
         print(ser.read())
         time.sleep(5)
