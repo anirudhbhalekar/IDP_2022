@@ -1,0 +1,375 @@
+#include <ArduinoBLE.h>
+#include <Adafruit_MotorShield.h>
+#include <Servo.h>
+
+// Create servo object for robot pincer arm
+Servo pincer;
+
+// Initiate motor shield object using default I2C address
+Adafruit_MotorShield AFMS = Adafruit_MotorShield();
+
+// Two motors for each of the front wheels, using ports M1 and M2
+Adafruit_DCMotor *left_motor = AFMS.getMotor(1);
+Adafruit_DCMotor *right_motor = AFMS.getMotor(2);
+// Motor speed can be set in range 0 (off) to 255 (max speed)
+
+const char* nameOfPeripheral = "M201_BLE_DEVICE"; 
+
+// Device name
+
+const char* uuidOfService = "0000ffe1-0000-1000-8000-00805f9b34fb";
+const char* uuidOfRxChar = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+const char* uuidOfTxChar = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+
+// BLE Service
+
+BLEService receiverService(uuidOfService); 
+
+
+// Setup the incoming data characteristic (RX)
+
+const int RX_BUFFER_SIZE = 256; 
+bool      RX_BUFFER_FIXED_LENGTH = false; 
+
+static bool      readNotWrite = true; 
+
+BLECharacteristic rxChar(uuidOfRxChar, BLEWriteWithoutResponse | BLEWrite, RX_BUFFER_SIZE, RX_BUFFER_FIXED_LENGTH); 
+BLEByteCharacteristic txChar(uuidOfTxChar, BLERead | BLENotify | BLEBroadcast);
+
+
+// LED pin numbers
+int redLED = 2;     // Red LED (dense)
+int greenLED = 4;   // Green LED (porous)
+int amberLED = 8;   // Amber LED (flashing)
+
+// Ultrasonic sensor pin numbers
+int trigPin = 11;    // Trigger
+int echoPin = 12;    // Echo
+
+int timer = 50; // controls frequeuncy
+int counter = 0; // counter for timer
+
+int buttonPin = 7;
+int buttonState = 0; // button
+int readyState = 1; // 0 if button needs to be pressed to start
+
+long duration, distance;
+int distanceLimit = 9; // max distance (in cm) for which a porous block is detected
+
+////////////////////////////////////////////////////////////////////////////////
+// Modes of operation for the robot, to be set by laptop via Bluetooth
+// All are set to false by default, until instructions are given by laptop
+char mode = "r";
+// scan: state for detecting type of block
+// move: state for when the robot is in motion, motors in use
+// grab: state for when servo is in use to grab block
+
+int instruction;
+
+void setup() {
+  // put your setup code here, to run once:
+
+  Serial.begin(9600); 
+  while(!Serial);
+
+  servoSetup();
+  motorSetup();
+  LEDSetup(); 
+  ultraSetup();
+  buttonSetup();
+
+  pinMode(LED_BUILTIN, OUTPUT); 
+
+  startBLE(); 
+
+  BLE.setLocalName(nameOfPeripheral); 
+  BLE.setAdvertisedService(receiverService); 
+  receiverService.addCharacteristic(rxChar);
+  receiverService.addCharacteristic(txChar);
+  BLE.addService(receiverService);
+
+  BLE.setEventHandler(BLEConnected, onBLEConnected);
+  BLE.setEventHandler(BLEDisconnected, onBLEDisconnected);
+  
+  rxChar.setEventHandler(BLEWritten, onRxCharValueUpdate);
+
+  BLE.advertise();
+
+
+  Serial.println(F("Bluetooth device active, waiting for connections..."));
+
+  
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  byte data; 
+  char response[33];
+  byte charPos = 0; 
+
+  byte test_send = "12345"; 
+
+  BLEDevice central = BLE.central();
+  
+  if (central)
+  {
+
+    while(central.connected()) {
+      connectedLight(); 
+
+      }
+    
+    disconnectedLight(); 
+  }
+
+  else {
+    disconnectedLight(); 
+  }
+}
+
+void startBLE() {
+  if (!BLE.begin())
+  {
+    Serial.println(F("starting BLE failed!"));
+    while (1);
+  }
+}
+
+void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
+  // central wrote new value to characteristic, update LED
+  Serial.print(F("Characteristic event, read: "));
+  byte tmp[256];
+  int dataLength = rxChar.readValue(tmp, 256);
+  String input_str; 
+
+  for(int i = 0; i < dataLength; i++) {
+    Serial.println(input_str);
+    input_str += (char)tmp[i];
+  }
+
+  if(input_str == "forward"){
+    Serial.println("MOVING FORWARD");
+    forward(250,10000); 
+  }
+  
+  Serial.println();
+}
+
+
+void onBLEConnected(BLEDevice central) {
+  Serial.print("Connected event, central: ");
+  Serial.println(central.address());
+  connectedLight();
+}
+
+void onBLEDisconnected(BLEDevice central) {
+  Serial.print("Disconnected event, central: ");
+  Serial.println(central.address());
+  disconnectedLight();
+}
+
+/*
+ * LEDS
+ */
+void connectedLight() {
+  digitalWrite(LED_BUILTIN, HIGH);
+
+}
+
+void disconnectedLight() {
+ digitalWrite(LED_BUILTIN, LOW);
+}
+
+////////////////////////////////////////////////////////////////////////////////// Motor instructions
+void forward(int motor_speed, int duration) {
+  // Set speed
+  left_motor->setSpeed(motor_speed);
+  right_motor->setSpeed(motor_speed);
+
+  // Move in direction
+  left_motor->run(FORWARD);
+  right_motor->run(FORWARD);
+
+  // Run for duration
+  delay(duration);
+
+  // Stop moving
+  left_motor->run(RELEASE);
+  right_motor->run(RELEASE);
+}
+
+void backward(int motor_speed, int duration) {
+  // Set speed
+  left_motor->setSpeed(motor_speed);
+  right_motor->setSpeed(motor_speed);
+
+  // Move in direction
+  left_motor->run(BACKWARD);
+  right_motor->run(BACKWARD);
+
+  // Run for duration
+  delay(duration);
+
+  // Stop moving
+  left_motor->run(RELEASE);
+  right_motor->run(RELEASE);
+}
+
+void right_turn(int motor_speed, int duration) {
+  // Set speed
+  left_motor->setSpeed(motor_speed);
+
+  // Move in direction
+  left_motor->run(FORWARD);
+
+  // Run for duration
+  delay(duration);
+
+  // Stop moving
+  left_motor->run(RELEASE);
+}
+
+void left_turn(int motor_speed, int duration) {
+  // Set speed
+  right_motor->setSpeed(motor_speed);
+
+  // Move in direction
+  right_motor->run(FORWARD);
+
+  // Run for duration
+  delay(duration);
+
+  // Stop moving
+  right_motor->run(RELEASE);
+}
+
+void accelerate(int start_speed, int end_speed) {
+  uint8_t i;
+  left_motor->run(FORWARD);
+  right_motor->run(FORWARD);
+  for(i=start_speed; i<end_speed; i++){
+    left_motor->setSpeed(i);
+    right_motor->setSpeed(i);
+    delay(10);
+  }
+}
+
+void decelerate(int start_speed, int end_speed) {
+  uint8_t i;
+  left_motor->run(FORWARD);
+  right_motor->run(FORWARD);
+  for(i=start_speed; i>end_speed; i--){
+    left_motor->setSpeed(i);
+    right_motor->setSpeed(i);
+    delay(10);
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////// Ultrasonic sensor instructions
+void getDistance() {
+  // The sensor is activated by a HIGH pulse of 10 or more usec.
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(5);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+ 
+  // Reads the duration from when the HIGH signal starts to be emitted to 
+  // receiving an echo from an object.
+  pinMode(echoPin, INPUT);
+  duration = pulseIn(echoPin, HIGH);
+ 
+  // Convert the time into a distance in cm
+  distance = (duration/2) / 29.1;     
+  // Divide by 29.1 to convert duration into distance
+  
+  // Outputs distance measured to serial monitor (for debugging)
+  // Serial.print(distance);
+  // Serial.print("cm");
+  // Serial.println();
+}
+
+void scanBlock() { // test for whether robot is at the block, then whether block is porous or dense
+  getDistance();
+  if ((mode != "scan") or (readyState == 0)) {
+    // Both LEDs should be off if not at block
+    digitalWrite(greenLED, LOW);
+    digitalWrite(redLED, LOW);
+  }
+  else if (distance < distanceLimit) { // porous cubes will reflect ultrasound back
+    digitalWrite(greenLED, HIGH);
+    digitalWrite(redLED, LOW);
+  }
+  else { // dense cubes will give a high distance reading
+    digitalWrite(redLED, HIGH);
+    digitalWrite(greenLED, LOW);
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Blinking amber light instructions
+void blink() { // for blinking LED
+  if (readyState == 0) { // filler option for a different variable
+    digitalWrite(amberLED, LOW);
+    Serial.print("This msg should appear");
+    return;
+  }
+  else if (counter < timer) {
+    digitalWrite(amberLED, LOW);
+    }
+  else {
+    digitalWrite(amberLED, HIGH);
+  }
+
+  if (counter > 2*timer) { // resets counter
+    counter = 0;
+  }
+  counter++; // counter increment
+  // Debug  
+  Serial.print(counter);
+  Serial.println();  
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Button instructions
+void buttonInput() {
+  buttonState = digitalRead(buttonPin);
+  if (buttonState == 1) {
+    readyState = 1;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Setup for various components
+
+// Servo
+void servoSetup() {
+  pincer.attach(9);
+}
+
+// Motors
+void motorSetup() {
+  AFMS.begin();
+}
+
+// LEDs
+void LEDSetup() {
+  //Define inputs and outputs
+  pinMode(redLED, OUTPUT); // for dense cubes
+  pinMode(greenLED, OUTPUT); // for porous cubes
+  pinMode(amberLED, OUTPUT); // blinking LED to indicate moving
+}
+
+// Ultrasonic sensor
+void ultraSetup() { 
+//Define inputs and outputs
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+} 
+
+// Button
+void buttonSetup() {
+  pinMode(buttonPin, INPUT);
+}
+

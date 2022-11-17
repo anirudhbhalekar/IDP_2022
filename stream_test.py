@@ -317,6 +317,8 @@ def distance(coord1,coord2):
 
     return d
 
+def stage(curr_pos, marker_pos, curr_angle ):
+    x = None
 def main(): 
     count = 1 
     cap = cv2.VideoCapture(url)
