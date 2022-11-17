@@ -18,7 +18,8 @@ BLEService receiverService(uuidOfService);
 
 const int RX_BUFFER_SIZE = 256; 
 bool      RX_BUFFER_FIXED_LENGTH = false; 
-bool      readNotWrite = true; 
+
+static bool      readNotWrite = true; 
 
 
 
@@ -49,21 +50,8 @@ void setup() {
 
   BLE.advertise();
 
-    // Print out full UUID and MAC address.
-  Serial.println("Peripheral advertising info: ");
-  Serial.print("Name: ");
-  Serial.println(nameOfPeripheral);
-  Serial.print("MAC: ");
-  Serial.println(BLE.address());
-  Serial.print("Service UUID: ");
-  Serial.println(receiverService.uuid());
-  Serial.print("rxCharacteristic UUID: ");
-  Serial.println(uuidOfRxChar);
-  Serial.print("txCharacteristics UUID: ");
-  Serial.println(uuidOfTxChar);
-  
 
-  Serial.println("Bluetooth device active, waiting for connections...");
+  Serial.println(F("Bluetooth device active, waiting for connections..."));
 
   
 
@@ -98,7 +86,7 @@ void loop() {
           }
 
         if (input_str == "WRITE"){
-          Serial.println("SWITCHING TO WRITE MODE");
+          Serial.println(F("SWITCHING TO WRITE MODE"));
           disconnectedLight(); 
           delay(1000);
           connectedLight();
@@ -108,10 +96,9 @@ void loop() {
       }
 
       else{
-
-        txChar.writeValue(test_send);
-      }
-      
+        int dataLength = strlen(test_send);  
+        txChar.writeValue((byte)test_send);      
+      }   
     }
     disconnectedLight(); 
   }
@@ -121,20 +108,17 @@ void loop() {
   }
 }
 
-void write(){
-
-}
 void startBLE() {
   if (!BLE.begin())
   {
-    Serial.println("starting BLE failed!");
+    Serial.println(F("starting BLE failed!"));
     while (1);
   }
 }
 
 void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
   // central wrote new value to characteristic, update LED
-  Serial.print("Characteristic event, read: ");
+  Serial.print(F("Characteristic event, read: "));
   byte tmp[256];
   int dataLength = rxChar.readValue(tmp, 256);
 
@@ -143,9 +127,8 @@ void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
   }
   
   Serial.println();
-  //Serial.print("Value length = ");
-  //Serial.println(rxChar.valueLength());
 }
+
 
 void onBLEConnected(BLEDevice central) {
   Serial.print("Connected event, central: ");
