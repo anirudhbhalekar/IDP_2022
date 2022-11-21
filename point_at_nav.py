@@ -23,6 +23,23 @@ prev_angle = 90
 phase = 0
 rotation = 0
 
+
+def block_retrieval(distance, thresh = 10, pincer_engage = False, final_angle = "150", start_angle = "000"): 
+    
+    command = ""
+    if distance > thresh: 
+        pass; 
+    
+    if distance <= thresh: 
+        pincer_engage = True
+        command = command + "2" 
+    
+    if (pincer_engage):
+        command = command + final_angle 
+
+    return command
+
+
 while cap.isOpened(): 
     
     for i in range(4):
@@ -77,7 +94,8 @@ while cap.isOpened():
     if type(target) == str:
 
         if target == "blocks":
-            #need to edit this to find block correctly
+            # need to edit this to find block correctly
+            # execute function for getting blocks
             target = dt.blue_blocks_start(fix_frame, prev_target)
 
     if type(target) == str:
