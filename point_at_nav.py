@@ -148,7 +148,7 @@ def main():
             a = 1
             #print("Arrow not detected")
 
-        target_list = [c1, c2, "blocks", c3, tt2, "square"]
+        target_list = [c3, tt2, "square"]
         target = target_list[phase]
 
 
