@@ -1,9 +1,14 @@
 import stream_test as st
 import detection_tools as dt
 import numpy as np
+import cv2
 import time
 import serial
-import cv2
+
+ser = serial.Serial("COM9", 9600)
+
+ser.close()
+ser.open()
 
 url = "http://localhost:8081/stream/video.mjpeg"
 count = 1 
@@ -12,16 +17,10 @@ p1,p2,p3,p4,r0,g0 = None, None, None, None, None, None
 to1, to2 = None, None
 
 initialisation_length = 100
-#theta = 83.5 #table 1
+#theta = 83.5
 theta = 88
 prev_angle = 0
 phase = 0
-rotation = 0
-
-ser = serial.Serial("COM9", 9600)
-
-ser.close()
-ser.open()
 
 while cap.isOpened(): 
     
@@ -73,6 +72,7 @@ while cap.isOpened():
     target_list = [c1, c2, "blocks", c3, tt2, "square"]
     target = target_list[phase]
 
+
     if type(target) == str:
 
         if target == "blocks":
@@ -93,6 +93,23 @@ while cap.isOpened():
     
     if rotation > 180:
         rotation = rotation - 360
+
+    thresh = 30
+
+    speed = int(abs(rotation) * 255 / 180)
+    speed = f"{speed:03d}"
+    print(speed)
+    if rotation < -1 * thresh:
+        #turn left
+        command = "01" + speed + "10" + speed
+    elif rotation > thresh:
+        #turn right
+        command = "10" + speed + "01" + speed
+    else:
+        command = "00" + speed + "00" + speed
+
+    #serial_data = bytes(str(command), encoding='utf8')
+    #ser.write(serial_data)
 
     print(rotation)
 
