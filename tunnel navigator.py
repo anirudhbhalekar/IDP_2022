@@ -70,27 +70,40 @@ while cap.isOpened():
         a = 1
         #print("Arrow not detected")
 
-    target_list = [c1, c2, "blocks", c3, tt2, "square"]
+    target_list = [(tt2[0], tt2[1] + 100), "line_up", "forwards", c1]
     target = target_list[phase]
 
 
     if type(target) == str:
+        if target == "line_up":
 
-        if target == "blocks":
-            #need to edit this to find block correctly
-            target = dt.blue_blocks_start(fix_frame, prev_target)
+            target = tt1
+            command = "0"
+            serial_data = bytes(str(command), encoding='utf8')
+            ser.write(serial_data)
+            
+            #frame3, distance, rotation, prev_angle = dt.plot_pink_arrow_direction(frame3, target[0], target[1], prev_angle)
+            #if rotation > 180:
+            #    rotation = rotation - 360
+            #if rotation < 3:
+            #    phase += 1
 
-    if type(target) == str:
-        if target == "square":
-            #need to edit this to change depending on which block has been secured
-            target = rp
-        
-    try:
-        frame3, distance, rotation, prev_angle = dt.plot_pink_arrow_direction(frame3, target[0], target[1], prev_angle)
-        if distance < 30:
+        if target == "forwards":
+            command = "111255"
+            serial_data = bytes(str(command), encoding='utf8')
+            ser.write(serial_data)
+            time.sleep(2)
             phase += 1
-    except:
-        a = 1
+
+
+
+    else:
+        try:
+            frame3, distance, rotation, prev_angle = dt.plot_pink_arrow_direction(frame3, target[0], target[1], prev_angle)
+            if distance < 30:
+                phase += 1
+        except:
+            a = 1
     
     if rotation > 180:
         rotation = rotation - 360
