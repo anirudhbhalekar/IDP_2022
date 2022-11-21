@@ -76,6 +76,7 @@ def detect_objects(binary_img, min_area = 0, max_area = 999999):
 
     for contour in contours:      
         area = cv2.contourArea(contour)
+        print(area)
         if area >= min_area and area <= max_area:
             mean, angle = detect_obj(contour)
             mean_list.append(mean)
@@ -97,15 +98,19 @@ def find_green_beam(undistorted_img):
     centre, angle = detect_objects(single_colour, 100, 10000)
     return centre[0][0][0], centre[0][0][1], angle[0]
 
+#upper = np.array([165, 255, 10000])
+#lower = np.array([155, 100,	100])
+
 def find_pink_arrow(undistorted_img, ret_pink = False):
     #finds the pink arrow from an undistorted image and returns the pixel value of the centre of the arrow and it's heading
-    upper = np.array([165, 255, 255])
-    lower = np.array([155, 100,	160])
+    upper = np.array([170, 255, 255])
+    lower = np.array([150, 70,	200])
+
     single_colour = detect_colour(undistorted_img, upper, lower)
     centre, angle = detect_objects(single_colour, 100, 10000)
     if not ret_pink:
         return centre[0][0][0], centre[0][0][1], angle[0]
-    return single_colour
+    return np.expand_dims(single_colour, -1) * undistorted_img
 
 def corrected_pink_arrow(undistorted_img, prev_angle):
     x, y, raw_angle = find_pink_arrow(undistorted_img)

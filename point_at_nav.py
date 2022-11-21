@@ -16,11 +16,12 @@ cap = cv2.VideoCapture(url)
 p1,p2,p3,p4,r0,g0 = None, None, None, None, None, None
 to1, to2 = None, None
 
-initialisation_length = 100
-#theta = 83.5
-theta = 88
-prev_angle = 0
+initialisation_length = 20
+theta = 83.5
+#theta = 88
+prev_angle = 90
 phase = 0
+rotation = 0
 
 
 def block_retrieval(distance, thresh = 10, pincer_engage = False, final_angle = "150", start_angle = "000"): 
@@ -112,24 +113,25 @@ while cap.isOpened():
     if rotation > 180:
         rotation = rotation - 360
 
-    thresh = 30
-
-    speed = int(abs(rotation) * 255 / 180)
+    thresh = 5
+    x = 0.7
+    speed = int(abs(rotation) * 255/ 360 * x + 254 * (1 - x))
     speed = f"{speed:03d}"
-    print(speed)
+
     if rotation < -1 * thresh:
         #turn left
-        command = "01" + speed + "10" + speed
+        command = "101" + speed
     elif rotation > thresh:
         #turn right
-        command = "10" + speed + "01" + speed
+        command = "110" + speed
     else:
-        command = "00" + speed + "00" + speed
+        command = "111255"
+        #command = "0"
 
-    #serial_data = bytes(str(command), encoding='utf8')
-    #ser.write(serial_data)
-
-    print(rotation)
+    print(command)
+    serial_data = bytes(str(command), encoding='utf8')
+    if count > initialisation_length + 10:
+        ser.write(serial_data)
 
     st.plot_point(frame3,c1)
     st.plot_point(frame3,c2)
@@ -159,6 +161,8 @@ while cap.isOpened():
     cv2.imshow('stream', frame3)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
+            serial_data = bytes("0", encoding='utf8')
+            ser.write(serial_data)
             break
 
 cap.release()
