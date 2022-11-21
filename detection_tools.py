@@ -76,6 +76,7 @@ def detect_objects(binary_img, min_area = 0, max_area = 999999):
 
     for contour in contours:      
         area = cv2.contourArea(contour)
+        print(area)
         if area >= min_area and area <= max_area:
             mean, angle = detect_obj(contour)
             mean_list.append(mean)
@@ -92,7 +93,7 @@ def rotate_image(image, angle):
 def find_green_beam(undistorted_img):
     #finds the centre green beam from an undistorted image and returns the pixel value of the centre of the beam and it's heading
     upper = np.array([31, 270, 255])
-    lower = np.array([29, 90,	0])
+    lower = np.array([29, 90,	30])
     single_colour = detect_colour(undistorted_img, upper, lower)
     centre, angle = detect_objects(single_colour, 100, 10000)
     return centre[0][0][0], centre[0][0][1], angle[0]

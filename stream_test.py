@@ -58,12 +58,12 @@ def mask(frame):
     mask = cv2.inRange(img, lower_white, upper_white)
     return mask
 
-def region_of_interest(edges):
+def region_of_interest(edges, top_height_parameter = 0.2, bot_height_parameter = 0.1):
     
     # this function will mask regions of interest by ANDing a polygon of that shape
 
-    top_height_parameter = 0.2 # percent to shave off the top
-    bot_height_parameter = 0.1  # percent to shave off the bottom
+    # percent to shave off the top
+    # percent to shave off the bottom
 
    
     h,w = edges.shape
