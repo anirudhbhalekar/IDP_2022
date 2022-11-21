@@ -70,33 +70,34 @@ while cap.isOpened():
         a = 1
         #print("Arrow not detected")
 
-    target_list = [(tt2[0], tt2[1] + 100), "line_up", "forwards", c1]
+    target_list = [c3, (tt2[0] + 15, tt2[1] + 100), (tt2[0] + 15, tt2[1]), "line_up", "forwards", (tt1[0] + 10, tt1[1]), c4]
     target = target_list[phase]
-
+    print(target)
 
     if type(target) == str:
         if target == "line_up":
 
-            target = tt1
-            command = "0"
-            serial_data = bytes(str(command), encoding='utf8')
-            ser.write(serial_data)
-            
-            #frame3, distance, rotation, prev_angle = dt.plot_pink_arrow_direction(frame3, target[0], target[1], prev_angle)
-            #if rotation > 180:
-            #    rotation = rotation - 360
-            #if rotation < 3:
-            #    phase += 1
+            target = (tt1[0] + 10, tt1[1])
+            #command = "0"
+            #serial_data = bytes(str(command), encoding='utf8')
+            #ser.write(serial_data)
+
+            try:
+                frame3, distance, rotation, prev_angle = dt.plot_pink_arrow_direction(frame3, target[0], target[1], prev_angle)
+            except:
+                pass
+
+            if rotation > 180:
+                rotation = rotation - 360
+            if abs(rotation) < 3:
+                phase += 1
 
         if target == "forwards":
             command = "111255"
             serial_data = bytes(str(command), encoding='utf8')
             ser.write(serial_data)
-            time.sleep(2)
             phase += 1
-
-
-
+            time.sleep(2)
     else:
         try:
             frame3, distance, rotation, prev_angle = dt.plot_pink_arrow_direction(frame3, target[0], target[1], prev_angle)
@@ -109,7 +110,7 @@ while cap.isOpened():
         rotation = rotation - 360
 
     thresh = 5
-    x = 0.7
+    x = 0.65
     speed = int(abs(rotation) * 255/ 180 * x + 255 * (1 - x))
     speed = f"{speed:03d}"
 
@@ -123,7 +124,7 @@ while cap.isOpened():
         command = "111255"
         #command = "0"
 
-    print(command)
+    #print(command)
     serial_data = bytes(str(command), encoding='utf8')
     if count > initialisation_length + 10:
         ser.write(serial_data)
@@ -137,7 +138,10 @@ while cap.isOpened():
     st.plot_point(frame3, gp, color=(100,0,250))
     st.plot_point(frame3, tt1,color= (0,0,250))
     st.plot_point(frame3, tt2,color= (0,0,250))
-    st.plot_point(frame3, target, color = (0, 0, 0))
+    try:
+        st.plot_point(frame3, target, color = (0, 0, 0))
+    except:
+        pass
 
     frame3 = st.plot_hline(frame3, int(h/2))
     frame3 = st.plot_vline(frame3, int(w/2)) 

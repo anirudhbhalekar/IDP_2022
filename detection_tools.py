@@ -76,7 +76,7 @@ def detect_objects(binary_img, min_area = 0, max_area = 999999):
 
     for contour in contours:      
         area = cv2.contourArea(contour)
-        print(area)
+        #print(area)
         if area >= min_area and area <= max_area:
             mean, angle = detect_obj(contour)
             mean_list.append(mean)
