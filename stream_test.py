@@ -319,6 +319,78 @@ def distance(coord1,coord2):
 
 def stage(curr_pos, marker_pos, curr_angle ):
     x = None
+    
+def command_line(distance, theta, threshold_distance = 150, small_theta_variance = 5, large_theta_variance = 25, pincer_engage = False, block_detect = False):
+
+    d = distance
+    t = theta
+    s_t_v = small_theta_variance/2
+    l_t_v = large_theta_variance/2
+
+    power_rating = "L"
+
+    command = ""
+
+    if not pincer_engage and not block_detect: 
+        if d > threshold_distance: 
+            power_rating = "H"
+        
+        else: 
+            power_rating = "L"
+
+        if theta < s_t_v and theta > -s_t_v: 
+            command = "DN{}".format(power_rating)
+
+        # Have to look if I need to swap the rights with the lefts, making a guess now
+
+        elif theta < -s_t_v and theta > -l_t_v: 
+            command = "DR{}".format(power_rating)
+        elif theta > s_t_v and theta < l_t_v: 
+            command = "DL{}".format(power_rating)
+
+
+        elif theta < - l_t_v: 
+            command = "TR"
+        elif theta > l_t_v: 
+            command = "TL"
+    
+    elif pincer_engage and not block_detect: 
+        command = "PC"
+        # have to figure out condition for pincer open
+        # maybe we can do arduino-side - if the servo is closed we open or vice versa 
+    
+    elif block_detect: 
+        command = "B"
+    
+
+
+        """
+        Command lines: 
+
+        If first char is T (TURN Command): 
+
+        - Next character defines Right or Left 
+        - Duration is arbitrarily high
+
+        If first char is D (Drive Command): 
+
+        - Default equalization of both motors
+
+        - Next character defines Right, Left or no Nudge 
+        - Next character defines Nudge value
+        - Next character defines High or Low power
+
+        If first char is P (Pincer Command): 
+
+        - Next char defines which direction the pincer moves (close/open)
+
+        If first char is B (Block detection poll): 
+
+        - Waits for ultrasound response
+
+        """
+
+
 def main(): 
     count = 1 
     cap = cv2.VideoCapture(url)
