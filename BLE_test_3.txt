@@ -372,4 +372,3 @@ void ultraSetup() {
 void buttonSetup() {
   pinMode(buttonPin, INPUT);
 }
-

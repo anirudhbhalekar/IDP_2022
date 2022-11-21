@@ -36,7 +36,7 @@ while cap.isOpened():
     #if True:
         arrowed = dt.arrow_to_all_blocks(rotated, prev_angle)
         #print(distance, rotation, prev_angle)
-        #centres, arrowed = dt.find_blue_blocks(rotated, True)
+        #arrowed = dt.find_pink_arrow(rotated, True)
         #print(centres)
     except IndexError:
         arrowed = rotated 
