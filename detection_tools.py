@@ -76,7 +76,7 @@ def detect_objects(binary_img, min_area = 0, max_area = 999999):
 
     for contour in contours:      
         area = cv2.contourArea(contour)
-        print(area)
+        #print(area)
         if area >= min_area and area <= max_area:
             mean, angle = detect_obj(contour)
             mean_list.append(mean)
@@ -244,15 +244,47 @@ def plot_pink_arrow_direction(img, target_x, target_y, prev_angle):
     rotation = rotation % 360
     return img, distance, rotation, prev_angle
 
-def blue_blocks_start(img, prev):
+def get_pink_arrow_direction(img, target_x, target_y, prev_angle):
+    target = (target_x, target_y)
+    arrow_x, arrow_y, arrow_angle, prev_angle = corrected_pink_arrow(img, prev_angle)
+    arrow = np.array([arrow_x, arrow_y])
+
+    delta = target - arrow
+    distance = np.sqrt(np.sum(np.square(delta)))
+    angle = math.atan(delta[1] / delta[0]) * 180 / math.pi
+
+    if delta[0] < 0:
+        angle += 180
+
+    rotation = 720 + angle - arrow_angle
+    rotation = rotation % 360
+    return distance, rotation, prev_angle
+
+def dir_head(target_x, target_y, arrow_x, arrow_y, arrow_angle):
+    target = (target_x, target_y)
+    arrow = np.array([arrow_x, arrow_y])
+
+    delta = target - arrow
+    distance = np.sqrt(np.sum(np.square(delta)))
+    angle = math.atan(delta[1] / delta[0]) * 180 / math.pi
+
+    if delta[0] < 0:
+        angle += 180
+
+    rotation = 720 + angle - arrow_angle
+    rotation = rotation % 360
+    return distance, rotation
+
+def blue_blocks_start(img):
     x = np.array([310, 725])
     y = np.array([525, 690])
     centres = find_blue_blocks(img)
+    true_centres = []
     for centre in centres:
         centre = centre[0]
         if (x[0] < centre[0] < x[1]) and (y[0] < centre[1] < y[1]):
-            return [int(centre[0]), int(centre[1])]
-    return prev
+            true_centres.append((int(centre[0]), int(centre[1])))
+    return sorted(true_centres, key = lambda x: x[0])
 
 def arrow_to_blocks(img, prev_angle):
     block_locs = find_blue_blocks(img)
