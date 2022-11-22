@@ -1,127 +1,124 @@
-import cv2 
-import sys 
-import numpy as np 
-
-
-"""
-on original feed 
-
-rmse: 3.4264304106452443
-camera matrix:
- [[216.94417767   0.         502.48026266]
- [  0.         145.60895573 377.97176059]
- [  0.           0.           1.        ]]
-
-distortion coeffs: [[ 0.04893074  0.03431207 -0.01465341  0.0607378  -0.00279518]]
-
-Rs:
- (array([[ 0.57821595],
-       [-0.35696171],
-       [-2.00346791]]),)
-
-Ts:
- (array([[ 8.35841569],
-       [27.58149642],
-       [24.20417851]]),)
-
-"""
+import numpy as np
+import time
+import cv2
+import detection_tools as dt
 
 url = "http://localhost:8081/stream/video.mjpeg"
 
-cmtx = np.array([[216.94417767,0,502.48026266],[0,145.60895573,377.97176059],[0,0,1]])
-dst = np.array([[0.04893074], [0.03431207], [-0.01465341], [0.0607378], [-0.00279518]])
 
-DIM=(1016, 760)
-K= np.array([[567.4130565572482, 0.0, 501.39791714355], [0.0, 567.3325405728447, 412.9039077874256], [0.0, 0.0, 1.0]])
-D=np.array([[-0.05470334257497442], [-0.09142371384400942], [0.17966906821072895], [-0.08708720575337928]])
+ARUCO_DICT = {
+	"DICT_4X4_50": cv2.aruco.DICT_4X4_50,
+	"DICT_4X4_100": cv2.aruco.DICT_4X4_100,
+	"DICT_4X4_250": cv2.aruco.DICT_4X4_250,
+	"DICT_4X4_1000": cv2.aruco.DICT_4X4_1000,
+	"DICT_5X5_50": cv2.aruco.DICT_5X5_50,
+	"DICT_5X5_100": cv2.aruco.DICT_5X5_100,
+	"DICT_5X5_250": cv2.aruco.DICT_5X5_250,
+	"DICT_5X5_1000": cv2.aruco.DICT_5X5_1000,
+	"DICT_6X6_50": cv2.aruco.DICT_6X6_50,
+	"DICT_6X6_100": cv2.aruco.DICT_6X6_100,
+	"DICT_6X6_250": cv2.aruco.DICT_6X6_250,
+	"DICT_6X6_1000": cv2.aruco.DICT_6X6_1000,
+	"DICT_7X7_50": cv2.aruco.DICT_7X7_50,
+	"DICT_7X7_100": cv2.aruco.DICT_7X7_100,
+	"DICT_7X7_250": cv2.aruco.DICT_7X7_250,
+	"DICT_7X7_1000": cv2.aruco.DICT_7X7_1000,
+	"DICT_ARUCO_ORIGINAL": cv2.aruco.DICT_ARUCO_ORIGINAL,
+	"DICT_APRILTAG_16h5": cv2.aruco.DICT_APRILTAG_16h5,
+	"DICT_APRILTAG_25h9": cv2.aruco.DICT_APRILTAG_25h9,
+	"DICT_APRILTAG_36h10": cv2.aruco.DICT_APRILTAG_36h10,
+	"DICT_APRILTAG_36h11": cv2.aruco.DICT_APRILTAG_36h11
+}
+
+def return_angle(coords0, coords1, thresh = 0.01): 
+    x0,y0 = coords0[0], coords0[1]
+    x1,y1 = coords1[0], coords1[1]
+    
+    
+    if abs(x1-x0) > thresh:
+        tan_theta = (y1-y0)/(x1-x0)
+        theta = np.arctan(tan_theta)
+        theta = theta/np.pi * 180
+    
+    else: 
+        if y1 > y0: 
+            theta = 90
+        else: 
+            theta = -90
+
+    return theta
+def aruco_display(corners, ids, rejected, image): 
+    if len(corners) > 0: 
+        print("Detected")
+        ids = ids.flatten()
+
+        for (markerCorner, markerID) in zip(corners, ids):
+            corners = markerCorner.reshape((4,2))
+            (topLeft, topRight, bottomRight, bottomLeft) = corners
+            print(corners)
+
+            topRight = (int(topRight[0]), int(topRight[1]))
+            bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+            bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+            topLeft = (int(topLeft[0]), int(topLeft[1]))
+
+            cv2.line(image, topLeft, topRight, (0,255,0), 3)
+            cv2.line(image, topRight, bottomRight, (0,255,0), 3)
+            cv2.line(image, bottomRight, bottomLeft, (0,255,0), 3)
+            cv2.line(image, bottomLeft, topLeft, (0,255,0), 3)
+
+            topMid = (int((topRight[0] + topLeft[0])/2.0), int((topRight[1] + topLeft[1])/2.0))
+            bottomMid = (int((bottomLeft[0] + bottomRight[0])/2.0), int((bottomLeft[1] + bottomRight[1])/2.0))
+
+            cX = int((topLeft[0] + bottomRight[0])/2.0)
+            cY = int((topLeft[1] + bottomRight[1])/2.0)
+            cv2.circle(image, (cX,cY), 8, (0,0,255), -1)
+
+            cv2.arrowedLine(img, topMid, bottomMid, (255,0,0), 2)
+            
+            angle = return_angle(bottomMid, topMid)
+            cv2.putText(image, str(angle), (topMid[0], topMid[1] + 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
+            cv2.putText(image, str(markerID), (topLeft[0], topLeft[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0),2)
+            print("[Inference] ArUco marker ID: {}".format(markerID))
+
+            return image
 
 
-def undistort(img, balance=0.0, dim2=None, dim3=None):
 
-    # to remove fish eye distortion (values we got from tests)
-    dim1 = img.shape[:2][::-1]  #dim1 is the dimension of input image to un-distort
-    assert dim1[0]/dim1[1] == DIM[0]/DIM[1], "Image to undistort needs to have same aspect ratio as the ones used in calibration"
-    if not dim2:
-        dim2 = dim1
-    if not dim3:
-        dim3 = dim1
+aruco_type = "DICT_4X4_250"
 
-    scaled_K = K * dim1[0] / DIM[0]  # The values of K is to scale with image dimension.
-    scaled_K[2][2] = 1.0  # Except that K[2][2] is always 1.0
-    # This is how scaled_K, dim2 and balance are used to determine the final K used to un-distort image. OpenCV document failed to make this clear!
+arucoDict = cv2.aruco.Dictionary_get(ARUCO_DICT[aruco_type])
+
+arucoParams = cv2.aruco.DetectorParameters_create()
+
+
+cap = cv2.VideoCapture(url)
+
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
+while cap.isOpened(): 
+    ret, img = cap.read() 
+    img = dt.undistort(img)
+    
+    h, w, _ = img.shape
+
+    width = 1000
+    height = int(width*(h/w))
+    img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC )
    
-    new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(scaled_K, D, dim2, np.eye(3), balance=balance)
-    map1, map2 = cv2.fisheye.initUndistortRectifyMap(scaled_K, D, np.eye(3), new_K, dim3, cv2.CV_16SC2)
-    undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-    
-    return undistorted_img
+    corners, ids, rejected = cv2.aruco.detectMarkers(img, arucoDict, parameters=arucoParams)
 
-def get_qr_coords(cmtx, dist, points): 
+    detected_markers = aruco_display(corners, ids, rejected, img)
 
-    qr_edges = np.array([[0,0,0],
-                         [0,1,0],
-                         [1,1,0],
-                         [1,0,0]], dtype = 'float32').reshape((4,1,3))
-    
-    ret, rvec, tvec = cv2.solvePnP(qr_edges, points, cmtx, dist)
-    
-    unitv_points = np.array([[0,0,0], [1,0,0], [0,1,0], [0,0,1]], dtype = 'float32').reshape((4,1,3))
-    if ret:
-        points, jac = cv2.projectPoints(unitv_points, rvec, tvec, cmtx, dist)
-        #the returned points are pixel coordinates of each unit vector.
-        return points, rvec, tvec
+    try: 
+        cv2.imshow("image", detected_markers)
+    except: 
+        cv2.imshow("image", img)
 
-    #return empty arrays if rotation and translation values not found
-    else: return [], [], []
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'): 
+        break 
 
-
-def show_axes(cmtx, dist, in_source):
-    
-    cap = cv2.VideoCapture(in_source)
-    qr = cv2.QRCodeDetector()
-
-    while cap.isOpened(): 
-        
-        for i in range(2):
-            cap.grab()
-
-
-        ret, frame = cap.retrieve()
-        ret_qr, points = qr.detect(frame)
-
-        if ret_qr:
-            axis_points, rvec, tvec = get_qr_coords(cmtx, dist, points)
-            print("DETECTED")
-            #BGR color format
-            colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0,0,0)]
-
-            #check axes points are projected to camera view.
-            if len(axis_points) > 0:
-                axis_points = axis_points.reshape((4,2))
-
-                origin = (int(axis_points[0][0]),int(axis_points[0][1]) )
-
-                for p, c in zip(axis_points[1:], colors[:3]):
-                    p = (int(p[0]), int(p[1]))
-
-                    #Sometimes qr detector will make a mistake and projected point will overflow integer value. We skip these cases. 
-                    if origin[0] > 5*frame.shape[1] or origin[1] > 5*frame.shape[1]:break
-                    if p[0] > 5*frame.shape[1] or p[1] > 5*frame.shape[1]:break
-
-                    cv2.line(frame, origin, p, c, 5)
-
-        cv2.imshow('frame', frame)
-
-        k = cv2.waitKey(20)
-        if k == 27: break #27 is ESC key.
-
-    cap.release()
-    cv2.destroyAllWindows()
- 
-
-if __name__ == "__main__": 
-    input = url
-
-    show_axes(cmtx, dst, input)
-
-
+cv2.destroyAllWindows()
+cap.release()
