@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import glob
 
-filename = 'orientatio'
+filename = "C:/Users/Bhalekar's/Desktop/Part 1B/IDP/framecollection"
 DIM=(1016, 760)
 K= np.array([[567.4130565572482, 0.0, 501.39791714355], [0.0, 567.3325405728447, 412.9039077874256], [0.0, 0.0, 1.0]])
 D=np.array([[-0.05470334257497442], [-0.09142371384400942], [0.17966906821072895], [-0.08708720575337928]])
@@ -17,7 +17,7 @@ def undistort(img_path):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-def better_undistort(img_path, balance=0.0, dim2=None, dim3=None): 
+def better_undistort(img_path, balance=0.0, dim2=None, dim3=None, count=1): 
  
     img = cv2.imread(img_path)
     dim1 = img.shape[:2][::-1]  #dim1 is the dimension of input image to un-distort
@@ -36,11 +36,15 @@ def better_undistort(img_path, balance=0.0, dim2=None, dim3=None):
     map1, map2 = cv2.fisheye.initUndistortRectifyMap(scaled_K, D, np.eye(3), new_K, dim3, cv2.CV_16SC2)
     undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
     
+    cv2.imwrite(filename + "{}.jpg".format(count), undistorted_img)
     cv2.imshow("undistorted_better", undistorted_img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
+    count = 1
     for image in glob.glob("{}/*.jpg".format(filename)):
+        
         cv2.imshow("", cv2.imread(image))
-        better_undistort(image)
+        better_undistort(image, count)
+        count += 1
