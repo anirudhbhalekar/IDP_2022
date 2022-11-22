@@ -244,15 +244,16 @@ def plot_pink_arrow_direction(img, target_x, target_y, prev_angle):
     rotation = rotation % 360
     return img, distance, rotation, prev_angle
 
-def blue_blocks_start(img, prev):
+def blue_blocks_start(img):
     x = np.array([310, 725])
     y = np.array([525, 690])
     centres = find_blue_blocks(img)
+    true_centres = []
     for centre in centres:
         centre = centre[0]
         if (x[0] < centre[0] < x[1]) and (y[0] < centre[1] < y[1]):
-            return [int(centre[0]), int(centre[1])]
-    return prev
+            true_centres.append((int(centre[0]), int(centre[1])))
+    return sorted(true_centres, key = lambda x: x[0])
 
 def arrow_to_blocks(img, prev_angle):
     block_locs = find_blue_blocks(img)

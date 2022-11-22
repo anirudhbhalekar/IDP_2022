@@ -34,10 +34,14 @@ while cap.isOpened():
     #"""
     try:
     #if True:
-        arrowed = dt.arrow_to_all_blocks(rotated, prev_angle)
+        #arrowed = dt.arrow_to_all_blocks(rotated, prev_angle)
         #print(distance, rotation, prev_angle)
         #arrowed = dt.find_pink_arrow(rotated, True)
-        #print(centres)
+        #arrowed = arrowed + rotate
+        centre = dt.blue_blocks_start(rotated)[0]
+        print(centre)
+        arrowed, distance, rotation, prev_angle = dt.plot_pink_arrow_direction(rotated, centre[0], centre[1], prev_angle)
+
     except IndexError:
         arrowed = rotated 
         
@@ -60,10 +64,5 @@ while cap.isOpened():
     
 cap.release()
 cv2.destroyAllWindows()
-
-plt.plot(arrow_x, arrow_y)
-plt.show()
-plt.plot(arrow_angle)
-plt.show()
 
 c1, c2, c3, c4, gp, rp = (245, 209), (339, 616), (769, 614), (789, 200), (708, 151), (315, 151)
