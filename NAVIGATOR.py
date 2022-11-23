@@ -69,6 +69,8 @@ def block_retrieval(isOn = False, thresh = 10, phase = phase):
     dec_val_list.sort()
     spliced_dec_list = dec_val_list[0:3]
     
+    # checks if the average of the minimum values is less than the set threshold
+    
     if len(spliced_dec_list) > 0: 
         if sum(spliced_dec_list)/len(spliced_dec_list) < thresh: 
             print("LOW DENSITY BLOCK")
