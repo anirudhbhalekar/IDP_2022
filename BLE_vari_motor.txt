@@ -40,7 +40,7 @@ BLEByteCharacteristic txChar(uuidOfTxChar, BLERead | BLENotify | BLEBroadcast);
 // LED pin numbers
 int redLED = 2;     // Red LED (dense)
 int greenLED = 4;   // Green LED (porous)
-int amberLED = 8;   // Amber LED (flashing)
+int amberLED = 6;   // Amber LED (flashing)
 
 // Ultrasonic sensor pin numbers
 int trigPin = 11;    // Trigger
@@ -148,7 +148,7 @@ void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
 
   //Serial.println(action);
   //Serial.println(tmp);
-
+  
   if (action == 0){
     right_motor->run(RELEASE);
     left_motor->run(RELEASE);
@@ -173,6 +173,11 @@ void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
     else {
       right_motor->run(BACKWARD);
     }
+  }
+  if (action == 3){
+      int pin = 2 + 2 * (tmp[1] - 48);
+      int instruction = tmp[2] - 48;
+      digitalWrite(pin, instruction);
   }
 }
 
