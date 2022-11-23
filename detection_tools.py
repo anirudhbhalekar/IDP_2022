@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 import vis_tools as vt
 import math
+ 
+
 #parameters for camera 1
 DIM = (1016, 760)
 K = np.array([[567.4130565572482, 0.0, 501.39791714355], [0.0, 567.3325405728447, 412.9039077874256], [0.0, 0.0, 1.0]])

@@ -53,7 +53,8 @@ int buttonPin = 7;
 int buttonState = 0; // button
 int readyState = 1; // 0 if button needs to be pressed to start
 
-long duration, distance;
+long duration;
+int distance; 
 int distanceLimit = 9; // max distance (in cm) for which a porous block is detected
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -179,6 +180,22 @@ void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
       int instruction = tmp[2] - 48;
       digitalWrite(pin, instruction);
   }
+
+  if (action == 4){
+    // write ultrasound data
+    getDistance(); 
+
+    int write_data; 
+    write_data = distance; 
+
+    if (write_data > 255){
+      write_data = 255;
+    }
+
+    txChar.writeValue(write_data); 
+    Serial.println(write_data); 
+    
+  }
 }
 
 
@@ -293,6 +310,7 @@ void decelerate(int start_speed, int end_speed) {
 
 ////////////////////////////////////////////////////////////////////////////////// Ultrasonic sensor instructions
 void getDistance() {
+ 
   // The sensor is activated by a HIGH pulse of 10 or more usec.
   digitalWrite(trigPin, LOW);
   delayMicroseconds(5);

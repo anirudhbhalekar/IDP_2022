@@ -6,6 +6,7 @@ import time
 import serial
 
 ##############################################
+
 ser = serial.Serial("COM9", 9600)
 
 ser.close()    
@@ -28,9 +29,18 @@ initialisation_length = 20
 theta = 83.5
 #theta = 88
 prev_angle = 90
-x, y, angle, rotation, phase, f_count = 0, 0, 0, 0, 4, -1
+x, y, angle, rotation, phase, f_count = 0, 0, 0, 0, 0, -1
 
 ##############################################
+
+def block_retrieval(isOn = False):
+    if isOn: 
+        ser.write("0") 
+        ser.write("111200")
+        time.sleep(2)
+
+        ser.write("4")
+
 
 def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle, f_count):
 
