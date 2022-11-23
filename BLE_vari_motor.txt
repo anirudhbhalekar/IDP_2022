@@ -53,8 +53,7 @@ int buttonPin = 7;
 int buttonState = 0; // button
 int readyState = 1; // 0 if button needs to be pressed to start
 
-long duration;
-int distance; 
+long duration, distance;
 int distanceLimit = 9; // max distance (in cm) for which a porous block is detected
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -67,136 +66,6 @@ char mode = "r";
 
 int instruction;
 
-void setup() {
-  // put your setup code here, to run once:
-
-  Serial.begin(9600); 
-  while(!Serial);
-
-  servoSetup();
-  motorSetup();
-  LEDSetup(); 
-  ultraSetup();
-  buttonSetup();
-
-  pinMode(LED_BUILTIN, OUTPUT); 
-
-  startBLE(); 
-
-  BLE.setLocalName(nameOfPeripheral); 
-  BLE.setAdvertisedService(receiverService); 
-  receiverService.addCharacteristic(rxChar);
-  receiverService.addCharacteristic(txChar);
-  BLE.addService(receiverService);
-
-  BLE.setEventHandler(BLEConnected, onBLEConnected);
-  BLE.setEventHandler(BLEDisconnected, onBLEDisconnected);
-  
-  rxChar.setEventHandler(BLEWritten, onRxCharValueUpdate);
-
-  BLE.advertise();
-
-
-  Serial.println(F("Bluetooth device active, waiting for connections..."));
-
-  left_motor->setSpeed(255);
-  right_motor->setSpeed(255);
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-  byte data; 
-  char response[33];
-  byte charPos = 0; 
-
-  byte test_send = "12345"; 
-
-  BLEDevice central = BLE.central();
-  
-  if (central)
-  {
-
-    while(central.connected()) {
-      connectedLight(); 
-
-      }
-    
-    disconnectedLight(); 
-  }
-
-  else {
-    disconnectedLight(); 
-  }
-}
-
-void startBLE() {
-  if (!BLE.begin())
-  {
-    Serial.println(F("starting BLE failed!"));
-    while (1);
-  }
-}
-
-void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
-  byte tmp[256];
-  int dataLength = rxChar.readValue(tmp, 256);
-  String input_str; 
-
-  for(int i = 0; i < dataLength; i++) {
-    input_str += (char)tmp[i];
-  }
-  int action = tmp[0] - 48;
-
-  //Serial.println(action);
-  //Serial.println(tmp);
-  
-  if (action == 0){
-    right_motor->run(RELEASE);
-    left_motor->run(RELEASE);
-  }
-
-  if(action == 1){
-    int motor_speed = 100 * (tmp[3] - 48) + 10 * (tmp[4] - 48) + tmp[5] - 48;
-    Serial.println(motor_speed);
-    left_motor->setSpeed(motor_speed);
-    right_motor->setSpeed(motor_speed);
-
-    if (tmp[1] - 48 == 1){
-      left_motor->run(FORWARD);
-    }
-    else {
-      left_motor->run(BACKWARD);
-    }
-
-    if (tmp[2] - 48 == 1){
-      right_motor->run(FORWARD);
-    }
-    else {
-      right_motor->run(BACKWARD);
-    }
-  }
-  if (action == 3){
-      int pin = 2 + 2 * (tmp[1] - 48);
-      int instruction = tmp[2] - 48;
-      digitalWrite(pin, instruction);
-  }
-
-  if (action == 4){
-    // write ultrasound data
-    getDistance(); 
-
-    int write_data; 
-    write_data = distance; 
-
-    if (write_data > 255){
-      write_data = 255;
-    }
-
-    txChar.writeValue(write_data); 
-    Serial.println(write_data); 
-    
-  }
-}
 
 
 void onBLEConnected(BLEDevice central) {
@@ -310,7 +179,6 @@ void decelerate(int start_speed, int end_speed) {
 
 ////////////////////////////////////////////////////////////////////////////////// Ultrasonic sensor instructions
 void getDistance() {
- 
   // The sensor is activated by a HIGH pulse of 10 or more usec.
   digitalWrite(trigPin, LOW);
   delayMicroseconds(5);
@@ -349,6 +217,27 @@ void scanBlock() { // test for whether robot is at the block, then whether block
     digitalWrite(greenLED, LOW);
   }
 }
+
+void position_arm(int angle, int duration) {
+  pincer.write(angle);        // set servo position to angle, in range 0 to 180
+  delay(duration);            // wait for duration
+}
+
+void rotate_arm(int end_angle, int rate) { 
+  int i;
+  int start_angle = pincer.read();
+  if (start_angle < end_angle) {
+    for (i=start_angle; i<end_angle; i++) {
+      position_arm(i, rate);
+    }
+  } 
+  else {
+    for (i=start_angle; i>end_angle; i--) {
+      position_arm(i, rate);
+    }
+  }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Blinking amber light instructions
@@ -414,4 +303,146 @@ void ultraSetup() {
 // Button
 void buttonSetup() {
   pinMode(buttonPin, INPUT);
+}
+
+
+void setup() {
+  // put your setup code here, to run once:
+
+  Serial.begin(9600); 
+  while(!Serial);
+
+  servoSetup();
+  motorSetup();
+  LEDSetup(); 
+  ultraSetup();
+  buttonSetup();
+
+  pinMode(LED_BUILTIN, OUTPUT); 
+
+  startBLE(); 
+
+  BLE.setLocalName(nameOfPeripheral); 
+  BLE.setAdvertisedService(receiverService); 
+  receiverService.addCharacteristic(rxChar);
+  receiverService.addCharacteristic(txChar);
+  BLE.addService(receiverService);
+
+  BLE.setEventHandler(BLEConnected, onBLEConnected);
+  BLE.setEventHandler(BLEDisconnected, onBLEDisconnected);
+  
+  rxChar.setEventHandler(BLEWritten, onRxCharValueUpdate);
+
+  BLE.advertise();
+
+
+  Serial.println(F("Bluetooth device active, waiting for connections..."));
+
+  left_motor->setSpeed(255);
+  right_motor->setSpeed(255);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  byte data; 
+  char response[33];
+  byte charPos = 0; 
+
+  byte test_send = "12345"; 
+
+  BLEDevice central = BLE.central();
+  
+  if (central)
+  {
+
+    while(central.connected()) {
+      connectedLight(); 
+
+      }
+    
+    disconnectedLight(); 
+  }
+
+  else {
+    disconnectedLight(); 
+  }
+}
+
+void startBLE() {
+  if (!BLE.begin())
+  {
+    Serial.println(F("starting BLE failed!"));
+    while (1);
+  }
+}
+
+void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
+  byte tmp[256];
+  int dataLength = rxChar.readValue(tmp, 256);
+  String input_str; 
+
+  for(int i = 0; i < dataLength; i++) {
+    input_str += (char)tmp[i];
+  }
+  int action = tmp[0] - 48;
+
+  //Serial.println(action);
+  //Serial.println(tmp);
+  
+  if (action == 0){
+    right_motor->run(RELEASE);
+    left_motor->run(RELEASE);
+  }
+
+  if(action == 1){
+    int motor_speed = 100 * (tmp[3] - 48) + 10 * (tmp[4] - 48) + tmp[5] - 48;
+    Serial.println(motor_speed);
+    left_motor->setSpeed(motor_speed * 0.97);
+    right_motor->setSpeed(motor_speed);
+
+    if (tmp[1] - 48 == 1){
+      left_motor->run(FORWARD);
+    }
+    else {
+      left_motor->run(BACKWARD);
+    }
+
+    if (tmp[2] - 48 == 1){
+      right_motor->run(FORWARD);
+    }
+    else {
+      right_motor->run(BACKWARD);
+    }
+  }
+  
+  if (action == 2){
+    if (tmp[1] - 48 == 0){
+      rotate_arm(60, 100);
+    }
+    if (tmp[1] - 48 == 1){
+      rotate_arm(0, 100);
+    }
+  }
+
+  if (action == 3){
+      int pin = 2 + 2 * (tmp[1] - 48);
+      int instruction = tmp[2] - 48;
+      digitalWrite(pin, instruction);
+  }
+
+  if (action == 4){
+    // write ultrasound data
+    getDistance(); 
+
+    int write_data; 
+    write_data = distance; 
+
+    if (write_data > 255){
+      write_data = 255;
+    }
+
+    txChar.writeValue(write_data); 
+    Serial.println(write_data); 
+    
+  }
 }

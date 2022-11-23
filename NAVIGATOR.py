@@ -29,7 +29,7 @@ initialisation_length = 20
 theta = 83.5
 #theta = 88
 prev_angle = 90
-x, y, angle, rotation, phase, f_count, g_count = 0, 0, 0, 0, 2, -1, -1
+x, y, angle, rotation, phase, f_count, g_count = 0, 0, 0, 0, 5, -1, -1
 
 prev_rotation, prev_distance = 0, 0
 ##############################################
@@ -216,10 +216,11 @@ while cap.isOpened():
         print("grab ", g_count)
 
     if target == "detect" and len(dec_val_list) < 8:
-        ser.write(b"4", encoding = 'utf-8')
+        ser.write(b"4")
         raw_read = ser.read(2).decode('utf-8')
         splice_read = str(raw_read)[4:-1]
-    
+        print("raw:", raw_read)
+        time.sleep(0.2)
         if len(splice_read) > 0: 
             dec_val = int(splice_read, base=16)
             dec_val_list.append(dec_val)
@@ -244,6 +245,8 @@ while cap.isOpened():
     
     else: 
         block_ready = False
+
+    print(dec_val_list)
 
     Cx, Cy, angle = dt.get_pose(corners, ids)
 
