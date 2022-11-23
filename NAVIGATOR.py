@@ -64,6 +64,7 @@ def block_retrieval(isOn = False, thresh = 10, phase = phase):
 
         if len(dec_val_list) > 8: 
             break
+    # add stuff for pincer to pinch
         
     dec_val_list.sort()
     spliced_dec_list = dec_val_list[0:3]
