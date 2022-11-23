@@ -11,7 +11,7 @@ ser.open()
 timeout = ser.timeout
 ser.timeout = 2
 
-writeMode = 0 
+writeMode = 1
 
 print('Enter your commands below.\r\nInsert "exit" to leave the application.')
 data_in = 1
@@ -33,6 +33,6 @@ while 1:
             ser.write(serial_data)
             
     else: 
-        ser.read_all()
-        print(ser.read())
+        ser.write(b"4")
+        print(ser.read().decode("utf-8"))
         time.sleep(5)

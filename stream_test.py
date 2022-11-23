@@ -208,8 +208,7 @@ def plot_vline(img, x):
     return img
 
 def plot_hline(img, y): 
-    h,w = img.shape[0], img.shape[1]
-    
+    h,w = img.shape[0], img.shape[1]    
     img = cv2.line(img, (0,y),(w,y), color=(0,0,255), thickness=2)
 
     return img

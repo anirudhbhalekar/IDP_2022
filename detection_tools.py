@@ -73,7 +73,7 @@ def aruco_display(image, corners, ids, rejected):
             cv2.putText(image, str(markerID), (topLeft[0], topLeft[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0),2)
             print("[Inference] ArUco marker ID: {}".format(markerID))
 
-    return image
+            return image
 
 def aruco_detection(img): 
 
@@ -99,25 +99,33 @@ def return_angle(coords0, coords1):
 
     if x0 >= x1 and y0 >= y1:
         angle = 180 - angle
-        
+
     return angle
 
-def get_pose(corners): 
+def get_pose(corners, ids): 
 
-    (topLeft, topRight, bottomRight, bottomLeft) = corners
+    cX, cY, angle = 0,0,0
 
-    topRight = (int(topRight[0]), int(topRight[1]))
-    bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
-    bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
-    topLeft = (int(topLeft[0]), int(topLeft[1]))
+    if len(corners) > 0: 
+        print("Detected")
+        ids = ids.flatten()
+    
+        for (markerCorner, markerID) in zip(corners, ids):
+            corners = markerCorner.reshape((4,2))
+            (topLeft, topRight, bottomRight, bottomLeft) = corners
 
-    topMid = (int((topRight[0] + topLeft[0])/2.0), int((topRight[1] + topLeft[1])/2.0))
-    bottomMid = (int((bottomLeft[0] + bottomRight[0])/2.0), int((bottomLeft[1] + bottomRight[1])/2.0))
+            topRight = (int(topRight[0]), int(topRight[1]))
+            bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+            bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+            topLeft = (int(topLeft[0]), int(topLeft[1]))
 
-    cX = int((topLeft[0] + bottomRight[0])/2.0)
-    cY = int((topLeft[1] + bottomRight[1])/2.0)
+            topMid = (int((topRight[0] + topLeft[0])/2.0), int((topRight[1] + topLeft[1])/2.0))
+            bottomMid = (int((bottomLeft[0] + bottomRight[0])/2.0), int((bottomLeft[1] + bottomRight[1])/2.0))
 
-    angle = return_angle(topMid, bottomMid)
+            cX = int((topLeft[0] + bottomRight[0])/2.0)
+            cY = int((topLeft[1] + bottomRight[1])/2.0)
+
+            angle = return_angle(topMid, bottomMid)
 
     return cX, cY, angle
     
@@ -353,18 +361,22 @@ def get_pink_arrow_direction(img, target_x, target_y, prev_angle):
     return distance, rotation, prev_angle
 
 def dir_head(target_x, target_y, arrow_x, arrow_y, arrow_angle):
+    distance, rotation = 500,0
     target = (target_x, target_y)
     arrow = np.array([arrow_x, arrow_y])
 
-    delta = target - arrow
-    distance = np.sqrt(np.sum(np.square(delta)))
-    angle = math.atan(delta[1] / delta[0]) * 180 / math.pi
+    if target is not None and arrow is not None: 
+        delta = target - arrow
+        distance = np.sqrt(np.sum(np.square(delta)))
+        angle = math.atan(delta[1] / delta[0]) * 180 / math.pi
 
-    if delta[0] < 0:
-        angle += 180
+        if delta[0] < 0:
+            angle += 180
 
-    rotation = 720 + angle - arrow_angle
-    rotation = rotation % 360
+        rotation = 720 + angle - arrow_angle
+        rotation = rotation % 360
+
+    rotation += 90
     return distance, rotation
 
 def blue_blocks_start(img):
