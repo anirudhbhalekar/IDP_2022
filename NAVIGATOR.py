@@ -29,7 +29,7 @@ initialisation_length = 20
 theta = 83.5
 #theta = 88
 prev_angle = 90
-x, y, angle, rotation, phase, f_count = 0, 0, 0, 0, 4, -1
+x, y, angle, rotation, phase, f_count, g_count = 0, 0, 0, 0, 2, -1, -1
 
 prev_rotation, prev_distance = 0, 0
 ##############################################
@@ -79,10 +79,7 @@ def block_retrieval(isOn = False, thresh = 10, phase = phase):
     return phase+1,isLowDensity
     
 
-
-
-
-def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle, f_count, block_ready = False):
+def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle, f_count, g_count, block_ready = False):
 
     rotation = 0
     distance = 0
@@ -99,6 +96,10 @@ def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle
                 rotation = rotation - 360
             if abs(rotation) < 1:
                 phase += 1
+                serial_data = bytes(str("0"), encoding='utf8')
+                ser.write(serial_data)
+                time.sleep(0.3)
+
 
         if target == "forwards":
             rotation = 0
@@ -109,7 +110,12 @@ def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle
 
             #for i in range(20):
             #    cap.grab()
-
+        if target == "grab":
+            rotation = 0 
+            distance = 500
+            print("Grab")
+            if g_count == 0:
+                phase += 1
     else:
     
         distance, rotation = dt.dir_head(target[0], target[1], arrow_x, arrow_y, arrow_angle)
@@ -141,6 +147,9 @@ while cap.isOpened():
     frame2 = st.detect_edge(frame2)
 
     if count <= initialisation_length:
+        serial_data = bytes(str("20"), encoding='utf8')
+        ser.write(serial_data)
+
         block = dt.blue_blocks_start(fix_frame)
         print("block, : ", block)
         block = block[0]
@@ -179,13 +188,49 @@ while cap.isOpened():
 
     corners, ids, rejected = cv2.aruco.detectMarkers(fix_frame, dt.arucoDict, parameters=dt.arucoParams)
     block_ready = False
-    phase1_fudge = 30 
+    phase1_fudge = 40 
 
-    target_list = [c1f, c2f, block, c3, (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 30), "line_up", "forwards", c4]
+    target_list = [c1f, c2f, (block[0] - 100, block[1] + 10), (block[0], block[1] + 10), "grab", "detect", c3, (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 30), "line_up", "forwards", c4]
     target = target_list[phase]
-
+    dec_val_list = []
     if target == "forwards" and f_count < 0:
-        f_count = 30
+        f_count = 20
+
+    if target == "grab" and g_count < 0:
+        g_count = 30
+        serial_data = bytes(str("0"), encoding='utf8')
+        ser.write(serial_data)
+        time.sleep(0.1)
+        serial_data = bytes(str("21"), encoding='utf8')
+        ser.write(serial_data)
+    
+    if target == "grab":
+        g_count -= 1
+        print("grab ", g_count)
+
+    if target == "detect" and len(dec_val_list) < 8:
+        ser.write(b"4", encoding = 'utf-8')
+        raw_read = ser.read(2).decode('utf-8')
+        splice_read = str(raw_read)[4:-1]
+    
+        if len(splice_read) > 0: 
+            dec_val = int(splice_read, base=16)
+            dec_val_list.append(dec_val)
+        else: 
+            pass
+
+    
+    if target == "detect" and len(dec_val_list) >= 8: 
+        dec_val_list.sort()
+        spliced_dec_list = dec_val_list[0:3]
+    
+        if sum(spliced_dec_list)/len(spliced_dec_list) < thresh: 
+            print("LOW DENSITY BLOCK")
+        else: 
+            print("HIGH DENSITY BLOCK")
+
+        dec_val_list = []
+        phase += 1
     
     if target == block: 
         block_ready = True
@@ -194,11 +239,15 @@ while cap.isOpened():
         block_ready = False
 
     Cx, Cy, angle = dt.get_pose(corners, ids)
-    rotation, distance, phase = rotation_and_distance_to_target(target, phase, Cx, Cy, angle, f_count)
+
+    if Cx == 0 and Cy ==0 and angle == 0:
+        pass
+    else:
+        rotation, distance, phase = rotation_and_distance_to_target(target, phase, Cx, Cy, angle, f_count, g_count)
 
     f_count -= 1
     thresh = 5
-    x = 0.6
+    x = 0.5
     speed = int(abs(rotation) * 255/ 180 * x + 255 * (1 - x))
     speed = f"{speed:03d}"
 
@@ -215,7 +264,7 @@ while cap.isOpened():
     
     serial_data = bytes(str(command), encoding='utf8')
     
-    if count > initialisation_length + 10:
+    if count > initialisation_length + 10 and (target != "grab" or target != "detect"):
         try: 
             x = None
             ser.write(serial_data)
