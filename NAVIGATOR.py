@@ -102,13 +102,15 @@ while cap.isOpened():
         tt1, tt2 = to1, to2  
 
     try:
-        x, y, angle, prev_angle  = dt.corrected_pink_arrow(fix_frame, prev_angle)
-        #print(x, y)
+        corners, id = dt.aruco_detection(fix_frame)
+        x,y, angle = dt.get_pose(corners)
+        frame3 = dt.aruco_display(frame3, corners, id, rejected=None)
+
     except IndexError:
         pass
         print("Marker not detected")
 
-    target_list = [c3, (tt2[0] + 15, tt2[1] + 100), (tt2[0] + 15, tt2[1]), "line_up", "forwards", (tt1[0] + 10, tt1[1]), c4]
+    target_list = [c1, c2, "block", c3, (tt2[0] + 15, tt2[1] + 100), (tt2[0] + 15, tt2[1]), "line_up", "forwards", (tt1[0] + 10, tt1[1]), c4]
     target = target_list[phase]
     #print(target)
 
