@@ -34,5 +34,17 @@ while 1:
             
     else: 
         ser.write(b"4")
-        print(ser.read().decode("utf-8"))
-        time.sleep(5)
+        raw_read = ser.read(2)
+        
+        splice_read = str(raw_read)[4:-1]
+        
+        if len(splice_read) > 0:
+            dec_val = int(splice_read, base=16)
+            print(dec_val)
+
+        else: 
+            dec_val = 255
+            print(raw_read)
+        time.sleep(1)
+
+

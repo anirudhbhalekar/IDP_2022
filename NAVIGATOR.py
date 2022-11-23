@@ -34,13 +34,18 @@ x, y, angle, rotation, phase, f_count = 0, 0, 0, 0, 0, -1
 ##############################################
 
 def block_retrieval(isOn = False):
+    read_value = None
+    forward_write = "111255"
     if isOn: 
-        ser.write("0") 
-        ser.write("111200")
+        ser.write(b"0", encoding = 'utf-8') 
+        ser.write(bytes(str(forward_write), encoding='utf8'))
         time.sleep(2)
 
-        ser.write("4")
+        ser.write(b"4", encoding = 'utf-8')
+        read_value = ser.read(2).decode('utf-8')
 
+        for char in read_value:
+            x = None
 
 def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle, f_count):
 
