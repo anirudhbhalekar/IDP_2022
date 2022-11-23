@@ -68,12 +68,16 @@ def block_retrieval(isOn = False, thresh = 10, phase = phase):
     dec_val_list.sort()
     spliced_dec_list = dec_val_list[0:3]
     
-    if sum(spliced_dec_list)/len(spliced_dec_list) < thresh: 
-        print("LOW DENSITY BLOCK")
-        isLowDensity = True
+    if len(spliced_dec_list) > 0: 
+        if sum(spliced_dec_list)/len(spliced_dec_list) < thresh: 
+            print("LOW DENSITY BLOCK")
+            isLowDensity = True
+        else: 
+            print("HIGH DENSITY BLOCK")
+            isLowDensity = False
     else: 
-        print("HIGH DENSITY BLOCK")
-        isLowDensity = False
+        # we can tell it to re-run it here
+        print("FAILED")
 
     return phase+1,isLowDensity
     
