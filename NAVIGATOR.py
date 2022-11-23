@@ -33,21 +33,55 @@ x, y, angle, rotation, phase, f_count = 0, 0, 0, 0, 0, -1
 
 ##############################################
 
-def block_retrieval(isOn = False):
-    read_value = None
+def block_retrieval(isOn = False, thresh = 10, phase = phase):
+
+    dec_val_list = []
+    isLowDensity = False
+
     forward_write = "111255"
-    if isOn: 
+    while isOn: 
+
+        # Writing for the robot to stop and then move forward for a bit (helps align)
         ser.write(b"0", encoding = 'utf-8') 
         ser.write(bytes(str(forward_write), encoding='utf8'))
-        time.sleep(2)
+        time.sleep(1)
 
+        # Writing for action 4 to be executed (arduino writes US value from transmitter)
         ser.write(b"4", encoding = 'utf-8')
-        read_value = ser.read(2).decode('utf-8')
+        raw_read = ser.read(2).decode('utf-8')
+        splice_read = str(raw_read)[4:-1]
 
-        for char in read_value:
-            x = None
+        time.sleep(0.5)
+        # Reduce polling speed
 
-def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle, f_count):
+        if len(splice_read > 0): 
+            dec_val = int(splice_read, base=16)
+            dec_val_list.append(dec_val)
+        else: 
+            pass
+        
+        # Once we have a sufficient number of distance polls in our list
+
+        if len(dec_val_list) > 8: 
+            break
+        
+    dec_val_list.sort()
+    spliced_dec_list = dec_val_list[0:3]
+    
+    if sum(spliced_dec_list)/len(spliced_dec_list) < thresh: 
+        print("LOW DENSITY BLOCK")
+        isLowDensity = True
+    else: 
+        print("HIGH DENSITY BLOCK")
+        isLowDensity = False
+
+    return phase+1,isLowDensity
+    
+
+
+
+
+def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle, f_count, block_ready = False):
 
     rotation = 0
     distance = 0
@@ -77,9 +111,10 @@ def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle
     else:
     
         distance, rotation = dt.dir_head(target[0], target[1], arrow_x, arrow_y, arrow_angle)
-        print(" got direction")
-        if distance < 30:
+        if distance < 30 and not block_ready:
             phase += 1
+        elif distance < 40 and block_ready: 
+            phase, _ = block_retrieval(True, 10, phase)
 
     
     if rotation > 180:
@@ -141,18 +176,23 @@ while cap.isOpened():
     
 
     corners, ids, rejected = cv2.aruco.detectMarkers(fix_frame, dt.arucoDict, parameters=dt.arucoParams)
-
+    block_ready = False
     phase1_fudge = 30 
 
     target_list = [c1f, c2f, block, c3, (tt2[0] + 15, tt2[1] + 100), (tt2[0] + 15, tt2[1] + 40), "line_up", "forwards", c4]
     target = target_list[phase]
-    print(target)
 
     if target == "forwards" and f_count < 0:
         f_count = 30
+    
+    if target == block: 
+        block_ready = True
+    
+    else: 
+        block_ready = False
 
     Cx, Cy, angle = dt.get_pose(corners, ids)
-    rotation, distance, phase = rotation_and_distance_to_target(target, phase, Cx, Cy, angle, f_count)
+    rotation, distance, phase = rotation_and_distance_to_target(target, phase, Cx, Cy, angle, f_count, block_ready)
 
     f_count -= 1
     thresh = 5
