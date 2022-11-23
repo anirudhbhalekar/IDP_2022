@@ -59,16 +59,17 @@ def aruco_display(image, corners, ids, rejected):
             cv2.line(image, bottomRight, bottomLeft, (0,255,0), 3)
             cv2.line(image, bottomLeft, topLeft, (0,255,0), 3)
 
-            topMid = (int((topRight[0] + topLeft[0])/2.0), int((topRight[1] + topLeft[1])/2.0))
-            bottomMid = (int((bottomLeft[0] + bottomRight[0])/2.0), int((bottomLeft[1] + bottomRight[1])/2.0))
+            bottomMid = (int((topRight[0] + topLeft[0])/2.0), int((topRight[1] + topLeft[1])/2.0))
+            topMid = (int((bottomLeft[0] + bottomRight[0])/2.0), int((bottomLeft[1] + bottomRight[1])/2.0))
 
             cX = int((topLeft[0] + bottomRight[0])/2.0)
             cY = int((topLeft[1] + bottomRight[1])/2.0)
             cv2.circle(image, (cX,cY), 8, (0,0,255), -1)
 
             cv2.arrowedLine(image, topMid, bottomMid, (255,0,0), 2)
-        
-            #cv2.putText(image, str(angle), (topMid[0], topMid[1] + 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
+            angle = return_angle(topMid, bottomMid)
+
+            cv2.putText(image, str(angle), (topMid[0], topMid[1] + 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
             cv2.putText(image, str(markerID), (topLeft[0], topLeft[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0),2)
             print("[Inference] ArUco marker ID: {}".format(markerID))
 
@@ -83,8 +84,22 @@ def return_angle(coords0, coords1):
     x0,y0 = coords0[0], coords0[1]
     x1,y1 = coords1[0], coords1[1]
 
-    angle = (180/np.pi) * np.arctan((y1-y0)/(x1-x0))
+    try:
+        angle = (180/np.pi) * np.arctan((y1-y0)/(x1-x0))
+    except:
+        angle = 90
+        
+    angle = 90 - abs(angle)
 
+    if x0 < x1 and y0 < y1:
+        angle = 360 - angle
+
+    if x0 < x1 and y0 >= y1:
+        angle = 180 + angle
+
+    if x0 >= x1 and y0 >= y1:
+        angle = 180 - angle
+        
     return angle
 
 def get_pose(corners): 
