@@ -39,7 +39,7 @@ arucoDict = cv2.aruco.Dictionary_get(ARUCO_DICT[aruco_type])
 
 arucoParams = cv2.aruco.DetectorParameters_create()
 
-def aruco_display(img, corners, ids, rejected, image): 
+def aruco_display(image, corners, ids, rejected): 
     if len(corners) > 0: 
         print("Detected")
         ids = ids.flatten()
@@ -66,7 +66,7 @@ def aruco_display(img, corners, ids, rejected, image):
             cY = int((topLeft[1] + bottomRight[1])/2.0)
             cv2.circle(image, (cX,cY), 8, (0,0,255), -1)
 
-            cv2.arrowedLine(img, topMid, bottomMid, (255,0,0), 2)
+            cv2.arrowedLine(image, topMid, bottomMid, (255,0,0), 2)
         
             #cv2.putText(image, str(angle), (topMid[0], topMid[1] + 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
             cv2.putText(image, str(markerID), (topLeft[0], topLeft[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0),2)
@@ -76,7 +76,6 @@ def aruco_display(img, corners, ids, rejected, image):
 
 def aruco_detection(img): 
 
-    x = None
     corners, ids, rejected = cv2.aruco.detectMarkers(img, arucoDict, parameters=arucoParams)
     return corners, ids
 

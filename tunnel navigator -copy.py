@@ -23,6 +23,7 @@ prev_angle = 90
 x, y, angle, rotation, phase, f_count = 0, 0, 0, 0, 0, -1
 
 def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle, f_count):
+
     if type(target) == str:
         if target == "line_up":
             target = (tt1[0] + 10, tt1[1])
@@ -94,6 +95,7 @@ while cap.isOpened():
         tt1 = st.stable_marker(t1, to1, count)
         tt2 = st.stable_marker(t2, to2, count)
 
+
     else: 
         c1,c2,c3,c4 = p1,p2,p3,p4
         rp, gp = r0, g0
@@ -104,7 +106,7 @@ while cap.isOpened():
         #print(x, y)
     except IndexError:
         pass
-        #print("Arrow not detected")
+        print("Marker not detected")
 
     target_list = [c3, (tt2[0] + 15, tt2[1] + 100), (tt2[0] + 15, tt2[1]), "line_up", "forwards", (tt1[0] + 10, tt1[1]), c4]
     target = target_list[phase]
@@ -138,9 +140,11 @@ while cap.isOpened():
     
     serial_data = bytes(str(command), encoding='utf8')
     if count > initialisation_length + 10:
-        #ser.write(serial_data)
+        ser.write(serial_data)
         pass
 
+    #################################################################################################
+    #GRAPHING
     st.plot_point(frame3,c1)
     st.plot_point(frame3,c2)
     st.plot_point(frame3,c3)
@@ -159,7 +163,8 @@ while cap.isOpened():
     frame3 = st.plot_vline(frame3, int(w/2)) 
     frame3 = st.plot_hline(frame3, int(h/4))
 
-    #st.plot_rectangle(frame3)
+    #END GRAPHING 
+    ####################################################################################################
     
     p1,p2,p3,p4 = c1,c2,c3,c4
     r0,g0 = rp, gp
