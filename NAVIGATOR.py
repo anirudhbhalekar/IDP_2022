@@ -5,10 +5,16 @@ import cv2
 import time
 import serial
 
+##############################################
 ser = serial.Serial("COM9", 9600)
 
-ser.close()
+ser.close()    
 ser.open()
+timeout = ser.timeout
+ser.timeout = 2
+
+##############################################
+
 
 url = "http://localhost:8081/stream/video.mjpeg"
 count = 1 
@@ -22,8 +28,12 @@ theta = 83.5
 prev_angle = 90
 x, y, angle, rotation, phase, f_count = 0, 0, 0, 0, 0, -1
 
+##############################################
+
 def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle, f_count):
 
+    rotation = 0
+    distance = -1
     if type(target) == str:
         if target == "line_up":
             target = (tt1[0] + 10, tt1[1])
@@ -60,6 +70,7 @@ def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle
 
     return rotation, distance, phase
 
+##############################################
 while cap.isOpened(): 
     
     for i in range(4):
@@ -106,9 +117,10 @@ while cap.isOpened():
         x,y, angle = dt.get_pose(corners)
         frame3 = dt.aruco_display(frame3, corners, id, rejected=None)
 
-    except IndexError:
-        pass
+    except:
         print("Marker not detected")
+        pass
+        
 
     target_list = [c1, c2, "block", c3, (tt2[0] + 15, tt2[1] + 100), (tt2[0] + 15, tt2[1]), "line_up", "forwards", (tt1[0] + 10, tt1[1]), c4]
     target = target_list[phase]
@@ -138,12 +150,19 @@ while cap.isOpened():
         command = "111255"
         #command = "0"
 
-    print(distance, rotation)
     
     serial_data = bytes(str(command), encoding='utf8')
+    
     if count > initialisation_length + 10:
-        ser.write(serial_data)
-        pass
+        try: 
+            #r = ser.read(1)
+            #print(r)
+            x = None
+            #if ser.isOpen(): 
+                #ser.write(serial_data)
+        except: 
+            print("Not connected!")
+            pass
 
     #################################################################################################
     #GRAPHING
@@ -180,7 +199,10 @@ while cap.isOpened():
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
             serial_data = bytes("0", encoding='utf8')
-            ser.write(serial_data)
+            try: 
+                ser.write(serial_data)
+            except: 
+                pass
             break
 
 cap.release()
