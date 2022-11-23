@@ -11,7 +11,7 @@ ser.open()
 timeout = ser.timeout
 ser.timeout = 2
 
-writeMode = 1
+writeMode = 0
 
 print('Enter your commands below.\r\nInsert "exit" to leave the application.')
 data_in = 1

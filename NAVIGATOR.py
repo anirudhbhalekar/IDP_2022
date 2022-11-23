@@ -29,8 +29,9 @@ initialisation_length = 20
 theta = 83.5
 #theta = 88
 prev_angle = 90
-x, y, angle, rotation, phase, f_count = 0, 0, 0, 0, 0, -1
+x, y, angle, rotation, phase, f_count = 0, 0, 0, 0, 4, -1
 
+prev_rotation, prev_distance = 0, 0
 ##############################################
 
 def block_retrieval(isOn = False):
@@ -51,9 +52,10 @@ def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle
 
     rotation = 0
     distance = 0
+
     if type(target) == str:
         if target == "line_up":
-            target = (tt1[0] + 10, tt1[1])
+            target = (tt1[0], tt1[1])
             try:
                 distance, rotation = dt.dir_head(target[0], target[1], arrow_x, arrow_y, arrow_angle)
             except:
@@ -61,7 +63,7 @@ def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle
 
             if rotation > 180:
                 rotation = rotation - 360
-            if abs(rotation) < 5:
+            if abs(rotation) < 1:
                 phase += 1
 
         if target == "forwards":
@@ -77,7 +79,7 @@ def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle
     else:
     
         distance, rotation = dt.dir_head(target[0], target[1], arrow_x, arrow_y, arrow_angle)
-        print(" got direction")
+        #print(" got direction")
         if distance < 30:
             phase += 1
 
@@ -144,7 +146,7 @@ while cap.isOpened():
 
     phase1_fudge = 30 
 
-    target_list = [c1f, c2f, block, c3, (tt2[0] + 15, tt2[1] + 100), (tt2[0] + 15, tt2[1] + 40), "line_up", "forwards", c4]
+    target_list = [c1f, c2f, block, c3, (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 30), "line_up", "forwards", c4]
     target = target_list[phase]
     print(target)
 
@@ -152,7 +154,12 @@ while cap.isOpened():
         f_count = 30
 
     Cx, Cy, angle = dt.get_pose(corners, ids)
-    rotation, distance, phase = rotation_and_distance_to_target(target, phase, Cx, Cy, angle, f_count)
+    if Cx == 0 and Cy == 0:
+        print("Failed ", Cx, Cy, angle)
+        a = 1
+    else:
+        print(Cx, Cy, angle)
+        rotation, distance, phase = rotation_and_distance_to_target(target, phase, Cx, Cy, angle, f_count)
 
     f_count -= 1
     thresh = 5
