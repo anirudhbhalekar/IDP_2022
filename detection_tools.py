@@ -4,7 +4,8 @@ import vis_tools as vt
 import math
 import serial 
 import time
- 
+import stream_test as st
+import serial
 
 #parameters for camera 1
 DIM = (1016, 760)
@@ -414,30 +415,30 @@ def arrow_to_all_blocks(img, prev_angle):
         img = vt.draw_arrow(arrow[0], arrow[1], angle, img, distance)
     return img
 
-def ultrasound_read(ser): 
-    ser.write(b"4")
-    raw_read = ser.read(2)
 
-    splice_read = str(raw_read)[4:-1]
-        
-    if len(splice_read) > 0:
-        try: 
-            dec_val = int(splice_read, base=16)
-        except: 
-            dec_val = None        
-    else: 
-        pass 
-    
-    return dec_val
+"""
 
-def detect_block(dec_val_list, thresh): 
-    avg_dist = sum(dec_val_list)/len(dec_val_list)
-    isLowDensity = False
-    
-    if avg_dist < thresh: 
-        # This means the block is low density (detectable)
-        isLowDensity = True
-    else: 
-        isLowDensity = False
-    
-    return isLowDensity
+img_path = "1_pink_arrow.jpg"
+test_img = cv2.imread(img_path)
+undistorted_img = undistort(test_img)
+cv2.imshow("Undistorted", undistorted_img)
+cv2.waitKey(0)
+#edge = edge_detection(undistorted_img)
+
+gb_x, gb_y, gb_angle = find_green_beam(undistorted_img, edge)
+pa_x, pa_y, pa_angle = find_pink_arrow(undistorted_img, edge)
+
+print(gb_x, gb_y, gb_angle)
+print(pa_x, pa_y, pa_angle)
+
+rotated = rotate_image(undistorted_img, gb_angle + 180)
+cv2.imshow("rotated", rotated)
+cv2.waitKey(0)
+
+cv2.imshow('raw', test_img)
+cv2.waitKey(0)
+cv2.imshow('undistorted', undistorted_img)
+cv2.waitKey(0)
+cv2.imshow('only green', green_only)
+cv2.waitKey(0)
+"""

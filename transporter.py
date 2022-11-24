@@ -141,56 +141,8 @@ def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle
     return rotation, distance, phase
 
 ##############################################
+initialise()
 while cap.isOpened(): 
-    
-    for i in range(4):
-        cap.grab()
-            
-    ret, frame = cap.retrieve()
-    
-    fix_frame = dt.rotate_image(dt.undistort(frame), theta)
-    h,w,_ = fix_frame.shape
-
-    frame3 = fix_frame
-
-    frame2 = st.filter_crop(fix_frame)
-    frame2 = st.detect_edge(frame2)
-
-    if count <= initialisation_length:
-        serial_data = bytes(str("20"), encoding='utf8')
-        ser.write(serial_data)
-
-        block = dt.blue_blocks_start(fix_frame)
-        print("block, : ", block)
-        block = block[0]
-
-        line_segments = st.houghline(frame2, 10)
-        frame3, corners, zones = st.plot_lanes(fix_frame,line_segments)
-    
-        m1,m2,m3,m4 = st.find_markers(frame3, corners)
-        r1,g1 = st.find_zones(frame3, zones)
-        t1,t2 = st.tunnel_marker(frame3, line_segments)
-        
-        rp = st.stable_marker(r1, r0, count)
-        gp = st.stable_marker(g1, g0, count)
-        
-        c1 = st.stable_marker(m1,p1,count)
-        c2 = st.stable_marker(m2,p2,count)
-        c3 = st.stable_marker(m3,p3,count)
-        c4 = st.stable_marker(m4,p4,count)
-
-        c1f = c1
-        c2f = c2
-
-        tt1 = st.stable_marker(t1, to1, count)
-        tt2 = st.stable_marker(t2, to2, count)
-
-
-    else: 
-        c1,c2,c3,c4 = p1,p2,p3,p4
-        rp, gp = r0, g0
-        tt1, tt2 = to1, to2  
-        block = prev_block
 
         c1f = (c1[0] - phase1_fudge, c1[1])
         c2f = (c2[0] - phase1_fudge, c2[1])
