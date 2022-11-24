@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import vis_tools as vt
 import math
+import time
 import stream_test as st
 import serial
 
@@ -423,8 +424,6 @@ def initialise(cap, theta, show = False):
         
         fix_frame = rotate_image(undistort(frame), theta)
         h,w,_ = fix_frame.shape
-
-        frame3 = fix_frame
 
         frame2 = st.filter_crop(fix_frame)
         frame2 = st.detect_edge(frame2)
