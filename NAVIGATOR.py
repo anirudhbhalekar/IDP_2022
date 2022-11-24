@@ -4,7 +4,6 @@ import numpy as np
 import cv2
 import time
 import serial
-
 ##############################################
 
 ser = serial.Serial("COM9", 9600)
@@ -30,10 +29,11 @@ initialisation_length = 20
 theta = 83.5
 #theta = 88
 prev_angle = 90
-x, y, angle, rotation, phase, f_count, g_count = 0, 0, 0, 0, 5, -1, -1
+x, y, angle, rotation, phase, f_count, g_count = 0, 0, 0, 0, 0 , -1, -1
 
 prev_rotation, prev_distance = 0, 0
 ##############################################
+
 
 def block_retrieval(isOn = False, thresh = 10, phase = phase):
 
@@ -94,7 +94,7 @@ def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle
 
     if type(target) == str:
         if target == "line_up":
-            target = (tt1[0], tt1[1])
+            target = (arrow_x - 12, arrow_y - 200)
             try:
                 distance, rotation = dt.dir_head(target[0], target[1], arrow_x, arrow_y, arrow_angle)
             except:
@@ -122,6 +122,8 @@ def rotation_and_distance_to_target(target, phase, arrow_x, arrow_y, arrow_angle
             rotation = 0 
             distance = 500
             print("Grab")
+            serial_data = bytes(str(310), encoding='utf8')
+            ser.write(serial_data)
             if g_count == 0:
                 phase += 1
     else:
@@ -198,10 +200,12 @@ while cap.isOpened():
     block_ready = False
     phase1_fudge = 40 
 
-    target_list = [c1f, c2f, (block[0] - 100, block[1] + 10), (block[0], block[1] + 10), "grab", "detect", c3, (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 30), "line_up", "forwards", c4]
+    target_list = [c1f, c2f, (block[0] - 100, block[1] + 10), (block[0], block[1] + 10), "grab", c3, (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "forwards", c4, (rp[0], rp[1] - 50), "release"]
     target = target_list[phase]
+    print(target)
+
     if target == "forwards" and f_count < 0:
-        f_count = 20
+        f_count = 15
 
     if target == "grab" and g_count < 0:
         g_count = 30
@@ -215,11 +219,26 @@ while cap.isOpened():
         g_count -= 1
         print("grab ", g_count)
 
+    if target == "release":
+        serial_data = bytes(str(20), encoding='utf8')
+        ser.write(serial_data)
+        time.sleep(0.05)
+        serial_data = bytes(str(310), encoding='utf8')
+        ser.write(serial_data)
+        time.sleep(0.05)
+        serial_data = bytes(str(320), encoding='utf8')
+        ser.write(serial_data)
+        time.sleep(0.05)
+        serial_data = bytes(str(0), encoding='utf8')
+        ser.write(serial_data)
+        ser.close()
+
     if target == "detect" and len(dec_val_list) < 8:
         ser.write(b"4")
         raw_read = ser.read(2).decode('utf-8')
         splice_read = str(raw_read)[4:-1]
         print("raw:", raw_read)
+        print("spliceL", splice_read)
         time.sleep(0.2)
         
         if len(splice_read) > 0: 
@@ -261,7 +280,7 @@ while cap.isOpened():
 
     f_count -= 1
     thresh = 5
-    x = 0.5
+    x = 0.6
     speed = int(abs(rotation) * 255/ 180 * x + 255 * (1 - x))
     speed = f"{speed:03d}"
 
@@ -278,7 +297,7 @@ while cap.isOpened():
     
     serial_data = bytes(str(command), encoding='utf8')
     
-    if count > initialisation_length + 10 and (target != "grab" or target != "detect"):
+    if count > initialisation_length + 10 and (target != "grab" or target != "detect" or target != "release"):
         try: 
             x = None
             ser.write(serial_data)
