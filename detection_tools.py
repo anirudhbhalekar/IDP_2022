@@ -2,7 +2,8 @@ import numpy as np
 import cv2
 import vis_tools as vt
 import math
- 
+import stream_test as st
+import serial
 
 #parameters for camera 1
 DIM = (1016, 760)
@@ -412,30 +413,48 @@ def arrow_to_all_blocks(img, prev_angle):
         img = vt.draw_arrow(arrow[0], arrow[1], angle, img, distance)
     return img
 
+def initialise(cap, theta):
+    p1,p2,p3,p4,r0,g0 = None, None, None, None, None, None
+    to1, to2 = None, None
+    block, prev_block = None, None
+    for j in range(100):
+        count = j
+        for i in range(4):
+            cap.grab()
+                
+        ret, frame = cap.retrieve()
+        
+        fix_frame = rotate_image(undistort(frame), theta)
+        h,w,_ = fix_frame.shape
 
-"""
+        frame3 = fix_frame
 
-img_path = "1_pink_arrow.jpg"
-test_img = cv2.imread(img_path)
-undistorted_img = undistort(test_img)
-cv2.imshow("Undistorted", undistorted_img)
-cv2.waitKey(0)
-#edge = edge_detection(undistorted_img)
+        frame2 = st.filter_crop(fix_frame)
+        frame2 = st.detect_edge(frame2)
 
-gb_x, gb_y, gb_angle = find_green_beam(undistorted_img, edge)
-pa_x, pa_y, pa_angle = find_pink_arrow(undistorted_img, edge)
+        serial_data = bytes(str("20"), encoding='utf8')
+        ser.write(serial_data)
 
-print(gb_x, gb_y, gb_angle)
-print(pa_x, pa_y, pa_angle)
+        block = blue_blocks_start(fix_frame)
+        block = block[0]
 
-rotated = rotate_image(undistorted_img, gb_angle + 180)
-cv2.imshow("rotated", rotated)
-cv2.waitKey(0)
+        line_segments = st.houghline(frame2, 10)
+        frame3, corners, zones = st.plot_lanes(fix_frame,line_segments)
 
-cv2.imshow('raw', test_img)
-cv2.waitKey(0)
-cv2.imshow('undistorted', undistorted_img)
-cv2.waitKey(0)
-cv2.imshow('only green', green_only)
-cv2.waitKey(0)
-"""
+        m1,m2,m3,m4 = st.find_markers(frame3, corners)
+        r1,g1 = st.find_zones(frame3, zones)
+        t1,t2 = st.tunnel_marker(frame3, line_segments)
+        
+        rp = st.stable_marker(r1, r0, count)
+        gp = st.stable_marker(g1, g0, count)
+        
+        c1 = st.stable_marker(m1,p1,count)
+        c2 = st.stable_marker(m2,p2,count)
+        c3 = st.stable_marker(m3,p3,count)
+        c4 = st.stable_marker(m4,p4,count)
+
+        tt1 = st.stable_marker(t1, to1, count)
+        tt2 = st.stable_marker(t2, to2, count)
+
+
+    return 
