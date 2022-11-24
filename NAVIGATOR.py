@@ -296,7 +296,6 @@ while cap.isOpened():
  
     
     serial_data = bytes(str(command), encoding='utf8')
-    
     if count > initialisation_length + 10 and (target != "grab" or target != "detect" or target != "release"):
         try: 
             x = None
