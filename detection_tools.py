@@ -74,7 +74,7 @@ def aruco_display(image, corners, ids, rejected):
 
             cv2.putText(image, str(angle), (topMid[0], topMid[1] + 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
             cv2.putText(image, str(markerID), (topLeft[0], topLeft[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0),2)
-            print("[Inference] ArUco marker ID: {}".format(markerID))
+            #print("[Inference] ArUco marker ID: {}".format(markerID))
 
             return image
 
@@ -368,6 +368,7 @@ def dir_head(target_x, target_y, arrow_x, arrow_y, arrow_angle):
     arrow = np.array([arrow_x, arrow_y])
 
     if target is not None and arrow is not None: 
+        #print(target, " ", arrow)
         delta = target - arrow
         distance = np.sqrt(np.sum(np.square(delta)))
         angle = math.atan(delta[1] / delta[0]) * 180 / math.pi
@@ -411,6 +412,25 @@ def arrow_to_all_blocks(img, prev_angle):
 
         img = vt.draw_arrow(arrow[0], arrow[1], angle, img, distance)
     return img
+
+def detect_block(dec_val_list, thresh): 
+    avg_dist = sum(dec_val_list)/len(dec_val_list)
+    isLowDensity = False
+
+    if avg_dist < thresh: 
+        # This means the block is low density (detectable)
+        isLowDensity = True
+    else: 
+        isLowDensity = False
+
+    return isLowDensity
+
+def ultrasound_read(ser): 
+    ser.write(b"4")
+    raw_read = ser.read(2)
+    return raw_read
+
+##################################################
 
 def initialise(cap, theta, show = False):
     p1,p2,p3,p4,r0,g0 = None, None, None, None, None, None
@@ -480,7 +500,7 @@ def vision(cap, theta, phase, block):
 
     corners, ids, _ = cv2.aruco.detectMarkers(fix_frame, arucoDict, parameters = arucoParams)
     
-    if phase == 0:
+    if phase == 0 or block == (0, 0):
         try:
             block = blue_blocks_start(fix_frame)[0]
         except IndexError:
@@ -493,20 +513,24 @@ def string_target(target, Cx, Cy):
     command = None
     if target == "forward":
         command = "111255"
-    if target == "grab":
+    if target == "reverse":
+        command = "100255"
+    elif target == "grab":
         command = "21"
-    if target == "release":
+    elif target == "release":
         command = "20"
-    if target == "line_up":
+    elif target == "line_up":
         target = (Cx - 12, Cy - 200)
-    target, command
+    elif target == "detect":
+        command = "4"
+    return target, command
 
 def get_command(target, Cx, Cy, angle, thresh = 5, x = 0.7):
     command = None
     distance, rotation = 0, 0
     if type(target) is str:
         target, command = string_target(target, Cx, Cy)
-    
+
     if command is None:   
         if Cx == 0 and Cy == 0 and angle == 0:
             pass
@@ -530,19 +554,24 @@ def get_command(target, Cx, Cy, angle, thresh = 5, x = 0.7):
 def string_update(target, distance, rotation, count):
     update = 0
     if target == "grab":
+        count -= 5
+    elif target == "release":
+        count -= 5
+    elif target == "forward":
+        count -= 4
+    elif target == "reverse":
+        count -= 15
+    elif target == "detect":
         count -= 10
-    if target == "release":
-        count -= 10
-    if target == "forward":
-        count -= 10
-    if target == "line_up":
+    elif target == "line_up":
         if rotation < 3:
             update = 1
+            print(rotation)
 
     if count <= 0:
         update = 1
     
-    return update
+    return update, count
 
 
 def update_handler(target, distance, rotation, count):

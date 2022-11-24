@@ -23,34 +23,80 @@ initialisation_length = 20
 theta = 83.5
 #theta = 88
 prev_angle = 90
-phase1_fudge = 40
-x, y, angle, rotation, phase, f_count, g_count = 0, 0, 0, 0, 0 , -1, -1
+phase1_fudge = 30
+x, y, angle, rotation, phase, count = 0, 0, 0, 0, 2, 100
 prev_rotation, prev_distance = 0, 0
+dist_list = []
 ##############################################
-stable = dt.initialise(cap, theta, True)
+#stable = dt.initialise(cap, theta, True)
+stable = ((709, 152), (317, 152), (247, 201), (251, 610), (779, 619), (790, 205), (801, 328), (795, 503))
 rp, gp, c1, c2, c3, c4, tt1, tt2 = stable
 
 c1f = (c1[0] - phase1_fudge, c1[1])
 c2f = (c2[0] - phase1_fudge, c2[1])
 block = (0, 0)
-print(stable)
+xp = (0, 0)
+#print(stable)
+
+serial_data = bytes("20", encoding='utf8')
+ser.write(serial_data)
+
 while cap.isOpened(): 
-#for i in range(100):
     Cx, Cy, angle, fix_frame, block = dt.vision(cap, theta, phase, block)
 
-    target_list = [c1f, c2f, (block[0] - 100, block[1] + 10), (block[0], block[1] + 10), "grab", c3, 
-    (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "forwards", c4, (rp[0], rp[1] - 50), "release"]
+    target_list = [c1f, c2f, (block[0] - 100, block[1] + 10), (block[0], block[1] + 10), "grab", "detect", c3, 
+    (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "forward", c4, xp, (xp[0], xp[1] - 50), "release", "reverse"]
     target = target_list[phase]
-    
-    #print(target)
-    command, distance, rotation = dt.get_command(target, Cx, Cy, angle)
-    serial_data = bytes(str(command), encoding='utf8')
-    
-    #ser.write(serial_data)
 
+    command, distance, rotation = dt.get_command(target, Cx, Cy, angle)
     update, count = dt.update_handler(target, distance, rotation, count)
+
+    print(target)
+    print(count)
+
+    if update == 1:
+        if target == "detect":
+            try:
+                isLowDensity = dt.detect_block(dist_list, 15)
+            except ZeroDivisionError:
+                isLowDensity = False
+            print(isLowDensity)
+            if isLowDensity:
+                xp = rp
+            else:
+                xp = gp
+
+            for i in range(100):
+                cap.grab()
+
+        count = 100
+        command = "0"
+        dist_list = []
+
+    serial_data = bytes(str(command), encoding='utf8')
+    ser.write(serial_data)
+
+    if target == "detect":
+        raw_read = ser.read(2)
+        splice_read = str(raw_read)[4:-1]
+        #print(raw_read)
+        if len(splice_read) > 0:
+            try: 
+                dec_val = int(splice_read, base=16)
+                dist_list.append(dec_val)
+                print(dec_val)
+            except: 
+                pass
+    
     phase += update
-    fix_frame = dt.GUI(fix_frame, stable, target, block, Cx, Cy)
+    phase = phase % len(target_list)
+
+    frame_3 = dt.GUI(fix_frame, stable, target, block, Cx, Cy)
+
+    try:
+        cv2.imshow('stream', frame_3)
+    except:
+        cv2.imshow('stream', fix_frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         serial_data = bytes("0", encoding='utf8')
@@ -60,4 +106,4 @@ while cap.isOpened():
             pass
         break
 
-    cv2.imshow('stream', fix_frame)
+    
