@@ -44,7 +44,6 @@ arucoParams = cv2.aruco.DetectorParameters_create()
 
 def aruco_display(image, corners, ids, rejected): 
     if len(corners) > 0: 
-        print("Detected")
         ids = ids.flatten()
 
         for (markerCorner, markerID) in zip(corners, ids):
@@ -110,7 +109,6 @@ def get_pose(corners, ids):
     cX, cY, angle = 0,0,0
 
     if len(corners) > 0: 
-        print("Detected")
         ids = ids.flatten()
     
         for (markerCorner, markerID) in zip(corners, ids):
@@ -413,11 +411,10 @@ def arrow_to_all_blocks(img, prev_angle):
         img = vt.draw_arrow(arrow[0], arrow[1], angle, img, distance)
     return img
 
-def initialise(cap, theta):
+def initialise(cap, theta, show = False):
     p1,p2,p3,p4,r0,g0 = None, None, None, None, None, None
     to1, to2 = None, None
-    block, prev_block = None, None
-    for j in range(100):
+    for j in range(20):
         count = j
         for i in range(4):
             cap.grab()
@@ -431,12 +428,6 @@ def initialise(cap, theta):
 
         frame2 = st.filter_crop(fix_frame)
         frame2 = st.detect_edge(frame2)
-
-        serial_data = bytes(str("20"), encoding='utf8')
-        ser.write(serial_data)
-
-        block = blue_blocks_start(fix_frame)
-        block = block[0]
 
         line_segments = st.houghline(frame2, 10)
         frame3, corners, zones = st.plot_lanes(fix_frame,line_segments)
@@ -456,5 +447,137 @@ def initialise(cap, theta):
         tt1 = st.stable_marker(t1, to1, count)
         tt2 = st.stable_marker(t2, to2, count)
 
+        p1,p2,p3,p4 = c1,c2,c3,c4 
+        r0, g0 = rp, gp
+        to1, to2 = tt1, tt2
 
-    return 
+        if show:
+            st.plot_point(frame3,c1)
+            st.plot_point(frame3,c2)
+            st.plot_point(frame3,c3)
+            st.plot_point(frame3,c4)
+        
+            st.plot_point(frame3, rp, color=(100,0,250))
+            st.plot_point(frame3, gp, color=(100,0,250))
+            st.plot_point(frame3, tt1,color= (0,0,250))
+            st.plot_point(frame3, tt2,color= (0,0,250))
+
+            cv2.imshow('stream', frame3)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    
+    cv2.destroyAllWindows()
+    return rp, gp, c1, c2, c3, c4, tt1, tt2
+
+def vision(cap, theta, phase, block):
+    for i in range(6):
+        cap.grab()
+            
+    ret, frame = cap.retrieve()
+    
+    fix_frame = rotate_image(undistort(frame), theta)
+    h,w,_ = fix_frame.shape
+
+    corners, ids, _ = cv2.aruco.detectMarkers(fix_frame, arucoDict, parameters = arucoParams)
+    
+    if phase == 0:
+        try:
+            block = blue_blocks_start(fix_frame)[0]
+        except IndexError:
+            pass
+
+    Cx, Cy, angle = get_pose(corners, ids)
+    return Cx, Cy, angle, fix_frame, block
+
+def string_target(target, Cx, Cy):
+    command = None
+    if target == "forward":
+        command = "111255"
+    if target == "grab":
+        command = "21"
+    if target == "release":
+        command = "20"
+    if target == "line_up":
+        target = (Cx - 12, Cy - 200)
+    target, command
+
+def get_command(target, Cx, Cy, angle, thresh = 5, x = 0.7):
+    command = None
+    distance, rotation = 0, 0
+    if type(target) is str:
+        target, command = string_target(target, Cx, Cy)
+    
+    if command is None:   
+        if Cx == 0 and Cy == 0 and angle == 0:
+            pass
+        else:
+            distance, rotation = dir_head(target[0], target[1], Cx, Cy, angle)    
+            if rotation > 180:
+                rotation = rotation - 360
+            
+            speed = int(abs(rotation) * 255/ 180 * x + 255 * (1 - x))
+            speed = f"{speed:03d}"
+
+            if rotation < -1 * thresh:
+                command = "101" + speed
+            elif rotation > thresh:
+                command = "110" + speed
+            else:
+                command = "111255"
+
+    return command, distance, rotation
+
+def string_update(target, distance, rotation, count):
+    update = 0
+    if target == "grab":
+        count -= 10
+    if target == "release":
+        count -= 10
+    if target == "forward":
+        count -= 10
+    if target == "line_up":
+        if rotation < 3:
+            update = 1
+
+    if count <= 0:
+        update = 1
+    
+    return update
+
+
+def update_handler(target, distance, rotation, count):
+    update = 0
+    if type(target) is str:
+        update, count = string_update(target, distance, rotation, count)
+    else:
+        if distance < 30:
+            update = 1
+    if update == 1:
+        count = 100
+    return update, count
+
+def GUI(fix_frame, stable, target, block, Cx, Cy):
+    rp, gp, c1, c2, c3, c4, tt1, tt2 = stable
+    corners, ids, _ = cv2.aruco.detectMarkers(fix_frame, arucoDict, parameters = arucoParams)
+
+    st.plot_point(fix_frame,c1)
+    st.plot_point(fix_frame,c2)
+    st.plot_point(fix_frame,c3)
+    st.plot_point(fix_frame,c4)
+    
+    st.plot_point(fix_frame, rp, color=(100,0,250))
+    st.plot_point(fix_frame, gp, color=(100,0,250))
+    st.plot_point(fix_frame, tt1,color= (0,0,250))
+    st.plot_point(fix_frame, tt2,color= (0,0,250))
+
+    try:
+        st.plot_point(fix_frame, target, color = (0, 0, 0))
+        st.plot_point(fix_frame, block, (255,255,0))
+        cv2.arrowedLine(fix_frame, (Cx,Cy), target, (0,255,0), 2)
+    except:
+        pass
+
+    fix_frame = aruco_display(fix_frame, corners, ids, rejected=None)
+    return fix_frame
+    
