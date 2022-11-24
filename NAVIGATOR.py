@@ -23,6 +23,7 @@ cap = cv2.VideoCapture(url)
 p1,p2,p3,p4,r0,g0 = None, None, None, None, None, None
 to1, to2 = None, None
 block, prev_block = None, None
+dec_val_list = []
 
 
 initialisation_length = 20
@@ -199,7 +200,6 @@ while cap.isOpened():
 
     target_list = [c1f, c2f, (block[0] - 100, block[1] + 10), (block[0], block[1] + 10), "grab", "detect", c3, (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 30), "line_up", "forwards", c4]
     target = target_list[phase]
-    dec_val_list = []
     if target == "forwards" and f_count < 0:
         f_count = 20
 
@@ -221,6 +221,7 @@ while cap.isOpened():
         splice_read = str(raw_read)[4:-1]
         print("raw:", raw_read)
         time.sleep(0.2)
+        
         if len(splice_read) > 0: 
             dec_val = int(splice_read, base=16)
             dec_val_list.append(dec_val)
@@ -234,11 +235,14 @@ while cap.isOpened():
     
         if sum(spliced_dec_list)/len(spliced_dec_list) < thresh: 
             print("LOW DENSITY BLOCK")
+            density_indicator_serial = bytes(str("50"), encoding='utf-8')
+            ser.write(density_indicator_serial)
         else: 
             print("HIGH DENSITY BLOCK")
-
-        dec_val_list = []
+            density_indicator_serial = bytes(str("51"), encoding='utf-8')
+            ser.write(density_indicator_serial)
         phase += 1
+        dec_val_list = []
     
     if target == block: 
         block_ready = True

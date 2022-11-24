@@ -10,6 +10,7 @@ ser.open()
 
 timeout = ser.timeout
 ser.timeout = 2
+dec_val_list = []
 
 writeMode = 0
 
@@ -40,11 +41,19 @@ while 1:
         
         if len(splice_read) > 0:
             dec_val = int(splice_read, base=16)
-            print(dec_val)
-
+            dec_val_list.append(dec_val)
+        
         else: 
-            dec_val = 255
-            print(raw_read)
+            pass 
+
+        if len(dec_val_list) > 8: 
+            spliced_list = dec_val_list.sort()[0:3]
+            bot_average = sum(spliced_list)/len(spliced_list)
+
+            if bot_average > 15: 
+                print("LOW DENSITY BLOCK")
+            else: 
+                print("HIGH DENSITY BLOCK")
         time.sleep(1)
 
 
