@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 import vis_tools as vt
 import math
-import serial 
 import time
 import stream_test as st
 import serial

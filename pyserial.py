@@ -62,6 +62,9 @@ while 1:
             print(bot_average)
             if bot_average > 40: 
                 print("HIGH DENSITY BLOCK")
+                ser.write(b"111255")
+                time.sleep(0.25)
+                ser.write(b"0")
             else: 
                 print("LOW DENSITY BLOCK")
             break
