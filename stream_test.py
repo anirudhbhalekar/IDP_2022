@@ -385,7 +385,7 @@ def command_line(distance, theta, threshold_distance = 150, small_theta_variance
 
         If first char is B (Block detection poll): 
 
-        - Waits for ultrasound response
+        - Waits for `ultras`ound response
 
         """
 
