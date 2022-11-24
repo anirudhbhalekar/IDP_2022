@@ -20,6 +20,8 @@ ser.write(b"20")
 time.sleep(3)
 ser.write(b"21")
 time.sleep(3)
+ser.write(b"300")
+ser.write(b"310")
 while 1:
 
     if writeMode == 0: 
@@ -57,16 +59,19 @@ while 1:
         
         print(dec_val_list)
 
-        if len(dec_val_list) > 8: 
+        if len(dec_val_list) > 4: 
             bot_average = sum(dec_val_list)/len(dec_val_list)
             print(bot_average)
             if bot_average > 40: 
                 print("HIGH DENSITY BLOCK")
-                ser.write(b"111255")
-                time.sleep(0.25)
-                ser.write(b"0")
+                ser.write(b"310")
+                ser.write(b"301")
+                
             else: 
                 print("LOW DENSITY BLOCK")
+                ser.write(b"300")
+                ser.write(b"311")
+
             break
 
         time.sleep(0.1)
