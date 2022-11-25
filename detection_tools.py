@@ -564,7 +564,7 @@ def string_update(target, distance, rotation, count):
     elif target == "detect":
         count -= 15
     elif target == "line_up":
-        if rotation < 3:
+        if rotation < 1.5:
             update = 1
             print(rotation)
 
