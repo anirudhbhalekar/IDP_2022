@@ -56,7 +56,7 @@ while cap.isOpened():
 
     #target_list = [c1f, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", c3, 
     #(tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "forward", c4, xp, (xp[0], xp[1] - 50), "release", "reverse"]
-    target_list =  ["grab", "detect", xp, (xp[0], xp[1] - 50), "release", "reverse"]
+    target_list =  ["grab", "detect", xp, (xp[0], xp[1] - 50), "release", "reverse", c1]
     target = target_list[phase]
 
     command, distance, rotation = dt.get_command(target, Cx, Cy, angle)
@@ -75,6 +75,7 @@ while cap.isOpened():
             except ZeroDivisionError:
                 isLowDensity = False
             print(isLowDensity)
+            print(dist_list)
             if isLowDensity:
                 xp = rp
                 command = "311"
@@ -88,10 +89,10 @@ while cap.isOpened():
         if target == "release":
             if isLowDensity:
                 xp = rp
-                command = "320"
+                command = "310"
             else:
                 xp = gp
-                command = "310"
+                command = "320"
         
         dist_list = []
             
@@ -109,8 +110,8 @@ while cap.isOpened():
                 dist_list.append(dec_val)
                 print(dec_val)
             except: 
-                pass
-
+                count += 10
+    
     phase += update
     phase = phase % len(target_list)
 
