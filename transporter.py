@@ -110,7 +110,7 @@ while cap.isOpened():
                 print(dec_val)
             except: 
                 pass
-    
+
     phase += update
     phase = phase % len(target_list)
 
