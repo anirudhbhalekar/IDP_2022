@@ -24,7 +24,7 @@ theta = 83.5
 #theta = 88
 prev_angle = 90
 phase1_fudge = 30
-x, y, angle, rotation, phase, count = 0, 0, 0, 0, 2, 100
+x, y, angle, rotation, phase, count = 0, 0, 0, 0, 0, 100
 prev_rotation, prev_distance = 0, 0
 dist_list = []
 ##############################################
@@ -38,14 +38,25 @@ block = (0, 0)
 xp = (0, 0)
 #print(stable)
 
+serial_data = bytes("300", encoding='utf8')
+ser.write(serial_data)
+time.sleep(0.01)
+serial_data = bytes("310", encoding='utf8')
+ser.write(serial_data)
+time.sleep(0.01)
+serial_data = bytes("320", encoding='utf8')
+ser.write(serial_data)
+time.sleep(0.01)
 serial_data = bytes("20", encoding='utf8')
 ser.write(serial_data)
+
 
 while cap.isOpened(): 
     Cx, Cy, angle, fix_frame, block = dt.vision(cap, theta, phase, block)
 
-    target_list = [c1f, c2f, (block[0] - 100, block[1] + 10), (block[0], block[1] + 10), "grab", "detect", c3, 
-    (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "forward", c4, xp, (xp[0], xp[1] - 50), "release", "reverse"]
+    #target_list = [c1f, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", c3, 
+    #(tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "forward", c4, xp, (xp[0], xp[1] - 50), "release", "reverse"]
+    target_list =  ["grab", "detect", xp, (xp[0], xp[1] - 50), "release", "reverse"]
     target = target_list[phase]
 
     command, distance, rotation = dt.get_command(target, Cx, Cy, angle)
@@ -55,6 +66,9 @@ while cap.isOpened():
     print(count)
 
     if update == 1:
+        count = 100
+        command = "0"
+
         if target == "detect":
             try:
                 isLowDensity = dt.detect_block(dist_list, 15)
@@ -63,15 +77,24 @@ while cap.isOpened():
             print(isLowDensity)
             if isLowDensity:
                 xp = rp
+                command = "311"
             else:
                 xp = gp
+                command = "321"
 
             for i in range(100):
                 cap.grab()
 
-        count = 100
-        command = "0"
+        if target == "release":
+            if isLowDensity:
+                xp = rp
+                command = "320"
+            else:
+                xp = gp
+                command = "310"
+        
         dist_list = []
+            
 
     serial_data = bytes(str(command), encoding='utf8')
     ser.write(serial_data)

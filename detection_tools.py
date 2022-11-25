@@ -554,7 +554,7 @@ def get_command(target, Cx, Cy, angle, thresh = 5, x = 0.7):
 def string_update(target, distance, rotation, count):
     update = 0
     if target == "grab":
-        count -= 5
+        count -= 40
     elif target == "release":
         count -= 5
     elif target == "forward":
@@ -562,7 +562,7 @@ def string_update(target, distance, rotation, count):
     elif target == "reverse":
         count -= 15
     elif target == "detect":
-        count -= 10
+        count -= 15
     elif target == "line_up":
         if rotation < 3:
             update = 1
