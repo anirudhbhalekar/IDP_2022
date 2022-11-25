@@ -36,7 +36,6 @@ ARUCO_DICT = {
 	"DICT_APRILTAG_36h11": cv2.aruco.DICT_APRILTAG_36h11
 }
 
-
 aruco_type = "DICT_4X4_250"
 
 arucoDict = cv2.aruco.Dictionary_get(ARUCO_DICT[aruco_type])

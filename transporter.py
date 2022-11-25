@@ -36,7 +36,6 @@ c1f = (c1[0] - phase1_fudge, c1[1])
 c2f = (c2[0] - phase1_fudge, c2[1])
 block = (0, 0)
 xp = (0, 0)
-#print(stable)
 
 serial_data = bytes("300", encoding='utf8')
 ser.write(serial_data)
