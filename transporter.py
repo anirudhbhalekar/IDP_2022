@@ -56,7 +56,7 @@ while cap.isOpened():
 
     #target_list = [c1f, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", c3, 
     #(tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "forward", c4, xp, (xp[0], xp[1] - 50), "release", "reverse"]
-    target_list =  ["grab", "detect", xp, (xp[0], xp[1] - 50), "release", "reverse"]
+    target_list =  ["grab", "detect", xp, (xp[0], xp[1] - 50), "release", "reverse", c1]
     target = target_list[phase]
 
     command, distance, rotation = dt.get_command(target, Cx, Cy, angle)

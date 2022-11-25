@@ -560,7 +560,7 @@ def string_update(target, distance, rotation, count):
     elif target == "forward":
         count -= 4
     elif target == "reverse":
-        count -= 15
+        count -= 5
     elif target == "detect":
         count -= 15
     elif target == "line_up":
