@@ -75,6 +75,7 @@ while cap.isOpened():
             except ZeroDivisionError:
                 isLowDensity = False
             print(isLowDensity)
+            print(dist_list)
             if isLowDensity:
                 xp = rp
                 command = "311"
@@ -88,10 +89,10 @@ while cap.isOpened():
         if target == "release":
             if isLowDensity:
                 xp = rp
-                command = "320"
+                command = "310"
             else:
                 xp = gp
-                command = "310"
+                command = "320"
         
         dist_list = []
             
@@ -109,7 +110,7 @@ while cap.isOpened():
                 dist_list.append(dec_val)
                 print(dec_val)
             except: 
-                pass
+                count += 10
     
     phase += update
     phase = phase % len(target_list)

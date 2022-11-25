@@ -525,7 +525,7 @@ def string_target(target, Cx, Cy):
         command = "4"
     return target, command
 
-def get_command(target, Cx, Cy, angle, thresh = 5, x = 0.7):
+def get_command(target, Cx, Cy, angle, thresh = 5, x = 0.6):
     command = None
     distance, rotation = 0, 0
     if type(target) is str:
@@ -562,7 +562,7 @@ def string_update(target, distance, rotation, count):
     elif target == "reverse":
         count -= 5
     elif target == "detect":
-        count -= 15
+        count -= 10
     elif target == "line_up":
         if rotation < 3:
             update = 1
