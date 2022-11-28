@@ -379,7 +379,7 @@ def dir_head(target_x, target_y, arrow_x, arrow_y, arrow_angle):
         rotation = rotation % 360
 
     rotation += 90
-    return distance, rotation
+    return distance, rotation   
 
 def blue_blocks_start(img):
     x = np.array([310, 725])
