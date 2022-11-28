@@ -6,12 +6,15 @@ import time
 import stream_test as st
 import serial
 
-#parameters for camera 1
+# parameters for camera 1
+# DIM specifies the dimensions, K and D are the camera and distortion matrices respectively
 DIM = (1016, 760)
 K = np.array([[567.4130565572482, 0.0, 501.39791714355], [0.0, 567.3325405728447, 412.9039077874256], [0.0, 0.0, 1.0]])
 D = np.array([[-0.05470334257497442], [-0.09142371384400942], [0.17966906821072895], [-0.08708720575337928]])
 
 
+# ARUCO dictionary (stores the IDs and patterns for all aruco markers) - is references when we initialise which ArUco marker type
+# the robot has 
 ARUCO_DICT = {
 	"DICT_4X4_50": cv2.aruco.DICT_4X4_50,
 	"DICT_4X4_100": cv2.aruco.DICT_4X4_100,
@@ -38,50 +41,64 @@ ARUCO_DICT = {
 
 aruco_type = "DICT_4X4_250"
 
+# Using a 4x4 ArUco marker with ID 138 
+
 arucoDict = cv2.aruco.Dictionary_get(ARUCO_DICT[aruco_type])
 
 arucoParams = cv2.aruco.DetectorParameters_create()
 
+# Displays ArUCo GUI
 def aruco_display(image, corners, ids, rejected): 
+    
     if len(corners) > 0: 
         ids = ids.flatten()
+
+        # Iterates over all - unpacked - corners and ids detected
 
         for (markerCorner, markerID) in zip(corners, ids):
             corners = markerCorner.reshape((4,2))
             (topLeft, topRight, bottomRight, bottomLeft) = corners
-            #print(corners)
 
+            # Converts the above into an ordered tuple
             topRight = (int(topRight[0]), int(topRight[1]))
             bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
             bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
             topLeft = (int(topLeft[0]), int(topLeft[1]))
 
+            # Plots appropriate lines to form a bounding box
             cv2.line(image, topLeft, topRight, (0,255,0), 3)
             cv2.line(image, topRight, bottomRight, (0,255,0), 3)
             cv2.line(image, bottomRight, bottomLeft, (0,255,0), 3)
             cv2.line(image, bottomLeft, topLeft, (0,255,0), 3)
 
+
+            # Gets the mid points of the top and bottom lines (for vector plotting)
             bottomMid = (int((topRight[0] + topLeft[0])/2.0), int((topRight[1] + topLeft[1])/2.0))
             topMid = (int((bottomLeft[0] + bottomRight[0])/2.0), int((bottomLeft[1] + bottomRight[1])/2.0))
+
+            # Gets the center coordinates for the marker
 
             cX = int((topLeft[0] + bottomRight[0])/2.0)
             cY = int((topLeft[1] + bottomRight[1])/2.0)
             cv2.circle(image, (cX,cY), 8, (0,0,255), -1)
 
+            # Plots an arrowed line in the direction of the heading
             cv2.arrowedLine(image, topMid, bottomMid, (255,0,0), 2)
             angle = return_angle(topMid, bottomMid)
 
+            # Text for the angle and ID detected
             cv2.putText(image, str(angle), (topMid[0], topMid[1] + 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
             cv2.putText(image, str(markerID), (topLeft[0], topLeft[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0),2)
-            #print("[Inference] ArUco marker ID: {}".format(markerID))
 
             return image
 
+# Method to detect and return all corners and ids of detected ArUco markers (using openCV inbuilt)
 def aruco_detection(img): 
 
     corners, ids, rejected = cv2.aruco.detectMarkers(img, arucoDict, parameters=arucoParams)
     return corners, ids
 
+# Returns angle between two coordinates (takes arctangent)
 def return_angle(coords0, coords1): 
     x0,y0 = coords0[0], coords0[1]
     x1,y1 = coords1[0], coords1[1]
@@ -89,8 +106,10 @@ def return_angle(coords0, coords1):
     try:
         angle = (180/np.pi) * np.arctan((y1-y0)/(x1-x0))
     except:
+        # Divide by zero exception
         angle = 90
-        
+    
+    # Some orientation manipulation to make it easier to debug 
     angle = 90 - abs(angle)
 
     if x0 < x1 and y0 < y1:
@@ -104,6 +123,7 @@ def return_angle(coords0, coords1):
 
     return angle
 
+# Method to return center coordinates and angle of ArUco markers (in a seperate method to make debugging easier)
 def get_pose(corners, ids): 
 
     cX, cY, angle = 0,0,0
@@ -191,75 +211,24 @@ def rotate_image(image, angle):
     result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
     return result
 
-def find_green_beam(undistorted_img):
-    #finds the centre green beam from an undistorted image and returns the pixel value of the centre of the beam and it's heading
-    upper = np.array([31, 270, 255])
-    lower = np.array([29, 90,	30])
-    single_colour = detect_colour(undistorted_img, upper, lower)
-    centre, angle = detect_objects(single_colour, 100, 10000)
-    return centre[0][0][0], centre[0][0][1], angle[0]
-
-#upper = np.array([165, 255, 10000])
-#lower = np.array([155, 100,	100])
-
-def find_pink_arrow(undistorted_img, ret_pink = False):
-    #finds the pink arrow from an undistorted image and returns the pixel value of the centre of the arrow and it's heading
-    upper = np.array([170, 255, 255])
-    lower = np.array([150, 70,	200])
-
-    single_colour = detect_colour(undistorted_img, upper, lower)
-    centre, angle = detect_objects(single_colour, 100, 10000)
-    if not ret_pink:
-        return centre[0][0][0], centre[0][0][1], angle[0]
-    return np.expand_dims(single_colour, -1) * undistorted_img
-
-def corrected_pink_arrow(undistorted_img, prev_angle):
-    x, y, raw_angle = find_pink_arrow(undistorted_img)
-    angle_array = np.array([0, 180]) + raw_angle
-    
-    deltas = np.abs(angle_array - prev_angle)
-    big = np.argmax(deltas)
-    deltas[big] = 360 - deltas[big]
-    quad = np.argmin(deltas)
-    #print(deltas)
-    angle = angle_array[quad]
-    prev_angle = angle
-    return x, y, angle, prev_angle
-
-
-#old blue
-#upper = np.array([105, 240, 255])
-#lower = np.array([95, 180,	0])
-
-#upper = np.array([120, 180, 255])
-#lower = np.array([90, 120,	0])
+# Finds the blue blocks based on color detection - works well with blue colors 
 
 def find_blue_blocks(undistorted_img, return_blue = False):
     upper = np.array([120, 360, 360])
     lower = np.array([100, 0,	0])
 
+    # Upper lower HSV thresholds for blue
+
     blues = detect_colour(undistorted_img, upper, lower, False)
 
+    # Blue isolated mask
     centre_list, _ = detect_objects(blues, 70, 100000)
+
+    # Finds weighted mean centre coordinates of mask (if blue detected, otherwise it returns the previous value)
     if return_blue:
         return centre_list, blues
     else:
         return centre_list
-
-def detect_corners(frame, superimpose):         
-    corners= cv2.goodFeaturesToTrack(frame, 30, 0.01, 35)
-    corner_arr = []
-    l = 5
-    if corners is not None: 
-        for corner in corners:
-            x,y= corner[0]
-            x= int(x)
-            y= int(y)
-            corner_arr.append((x,y))
-            superimpose = cv2.rectangle(superimpose, (x-l,y-l),(x+l,y+l),(255,0,0),-1)
-    
-    dst = superimpose 
-    return dst, corner_arr
 
 def no_filter_crop(image): 
     img = region_of_interest(detect_edge(mask(image)))
@@ -272,8 +241,6 @@ def region_of_interest(edges):
     top_height_parameter = 0.2 # percent to shave off the top
     bot_height_parameter = 0.1  # percent to shave off the bottom
 
-    right_width_parameter = 0.5 # percent to shave from the right
-    left_width_parameter = 0.1
     h,w = edges.shape
     mask = np.zeros_like(edges) 
     
@@ -286,15 +253,18 @@ def region_of_interest(edges):
         (0, h * (1 - bot_height_parameter)),
     ]], np.int32)
 
+    # bitwise ANDing
     cv2.fillPoly(mask, polygon, 255)
     cropped_edges = cv2.bitwise_and(edges, mask)
 
     return cropped_edges
 
+# Canny edge detection
 def detect_edge(image):
     edges = cv2.Canny(image, 200, 400)
     return edges
 
+# Mask generation (for white path line detection)
 def mask(frame):
     img =  (cv2.cvtColor(frame, cv2.COLOR_BGR2HSV_FULL))
     sensitivity = 15
@@ -316,50 +286,6 @@ def route(x, y, target_x, target_y):
     if dy >= 0 and dx < 0:
         heading = 360 + heading
     return distance, heading 
-
-def pink_arrow_line(img, prev_angle):
-    arrow_x, arrow_y, arrow_angle, prev_angle = corrected_pink_arrow(img, prev_angle)
-    img = vt.draw_arrow(arrow_x, arrow_y, arrow_angle, img, 30)
-    arrow = np.array([arrow_x, arrow_y])
-    return img, arrow
-
-def plot_pink_arrow_direction(img, target_x, target_y, prev_angle):
-    target = (target_x, target_y)
-    arrow_x, arrow_y, arrow_angle, prev_angle = corrected_pink_arrow(img, prev_angle)
-    arrow = np.array([arrow_x, arrow_y])
-
-    img = vt.draw_arrow(arrow_x, arrow_y, arrow_angle, img, 30)
-    
-    img = vt.plot_rectangle(img, 10, target)
-
-    delta = target - arrow
-    distance = np.sqrt(np.sum(np.square(delta)))
-    angle = math.atan(delta[1] / delta[0]) * 180 / math.pi
-
-    if delta[0] < 0:
-        angle += 180
-
-    img = vt.draw_arrow(arrow_x, arrow_y, angle, img, distance)
-
-    rotation = 720 + angle - arrow_angle
-    rotation = rotation % 360
-    return img, distance, rotation, prev_angle
-
-def get_pink_arrow_direction(img, target_x, target_y, prev_angle):
-    target = (target_x, target_y)
-    arrow_x, arrow_y, arrow_angle, prev_angle = corrected_pink_arrow(img, prev_angle)
-    arrow = np.array([arrow_x, arrow_y])
-
-    delta = target - arrow
-    distance = np.sqrt(np.sum(np.square(delta)))
-    angle = math.atan(delta[1] / delta[0]) * 180 / math.pi
-
-    if delta[0] < 0:
-        angle += 180
-
-    rotation = 720 + angle - arrow_angle
-    rotation = rotation % 360
-    return distance, rotation, prev_angle
 
 def dir_head(target_x, target_y, arrow_x, arrow_y, arrow_angle):
     distance, rotation = 500,0
@@ -391,26 +317,6 @@ def blue_blocks_start(img):
         if (x[0] < centre[0] < x[1]) and (y[0] < centre[1] < y[1]):
             true_centres.append((int(centre[0]), int(centre[1])))
     return sorted(true_centres, key = lambda x: x[0])
-
-def arrow_to_blocks(img, prev_angle):
-    block_locs = find_blue_blocks(img)
-    first_block = block_locs[1][0]
-    block_x, block_y = int(first_block[0]), int(first_block[1])
-    return plot_pink_arrow_direction(img, block_x, block_y, prev_angle)
-
-def arrow_to_all_blocks(img, prev_angle):
-    block_locs = find_blue_blocks(img)
-    img, arrow = pink_arrow_line(img, prev_angle)
-    for block in block_locs:
-        delta = block[0] - arrow
-        distance = np.sqrt(np.sum(np.square(delta)))
-        angle = math.atan(delta[1] / delta[0]) * 180 / math.pi
-
-        if delta[0] < 0:
-            angle += 180
-
-        img = vt.draw_arrow(arrow[0], arrow[1], angle, img, distance)
-    return img
 
 def detect_block(dec_val_list, thresh): 
     avg_dist = sum(dec_val_list)/len(dec_val_list)
