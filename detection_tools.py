@@ -412,11 +412,12 @@ def vision(cap, theta, phase, block):
     if phase == 0 or block == (0, 0):
         try:
             block = blue_blocks_start(fix_frame)[0]
+            last_block = blue_blocks_start(fix_frame)[-1]
         except IndexError:
             pass
 
     Cx, Cy, angle = get_pose(corners, ids)
-    return Cx, Cy, angle, fix_frame, block
+    return Cx, Cy, angle, fix_frame, block, last_block
 
 def string_target(target, Cx, Cy):
     command = None
@@ -453,7 +454,7 @@ def get_command(target, Cx, Cy, angle, prev_rotation, count, thresh = 5, x = 0.6
     
             else: 
                 count = 0
-                
+
             speed = int(abs(rotation) * 255/ 180 * x + 255 * (1 - x) + 10*count)
             speed = f"{speed:03d}"
 

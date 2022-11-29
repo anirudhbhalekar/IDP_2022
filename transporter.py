@@ -32,9 +32,10 @@ dist_list = []
 stable = ((709, 152), (317, 152), (247, 201), (251, 610), (779, 619), (790, 205), (801, 328), (795, 503))
 rp, gp, c1, c2, c3, c4, tt1, tt2 = stable
 
+home = (np.average(rp[0], gp[0]), np.average(rp[1] + gp[1]) - 50)
 c1f = (c1[0] - phase1_fudge, c1[1])
 c2f = (c2[0] - phase1_fudge, c2[1])
-block = (0, 0)
+block, last_block = (0, 0), (0,0)
 xp = (0, 0)
 
 serial_data = bytes("300", encoding='utf8')
@@ -51,9 +52,10 @@ ser.write(serial_data)
 
 
 while cap.isOpened(): 
-    Cx, Cy, angle, fix_frame, block = dt.vision(cap, theta, phase, block)
+    Cx, Cy, angle, fix_frame, block, last_block = dt.vision(cap, theta, phase, block)
 
-    target_list = [c1f, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", c3, 
+    avoid_target = (last_block[0], last_block[1] - 50)
+    target_list = [c1f, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", avoid_target, c3, 
     (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "line_up", "forward", (c4[0] + 25, c4[1]), c4, xp, (xp[0], xp[1] - 50), "release", "reverse"]
     #target_list =  ["grab", "detect", xp, (xp[0], xp[1] - 50), "release", "reverse", c1]
     target = target_list[phase]
@@ -96,6 +98,10 @@ while cap.isOpened():
     serial_data = bytes(str(command), encoding='utf8')
     ser.write(serial_data)
 
+
+    if type(target) == None: 
+        phase += 1
+
     if target == "detect":
         raw_read = ser.read(2)
         splice_read = str(raw_read)[4:-1]
@@ -108,6 +114,10 @@ while cap.isOpened():
             except: 
                 count += 10
     
+    if target == home and update == 1:
+        ser.write(bytes("0", encoding='utf8'))
+        break 
+
     phase += update
     phase = phase % len(target_list)
 
@@ -119,11 +129,7 @@ while cap.isOpened():
         cv2.imshow('stream', fix_frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        serial_data = bytes("0", encoding='utf8')
-        try: 
-            ser.write(serial_data)
-        except: 
-            pass
-        break
+        target_list.append(home)
+        
 
-    
+print("Home")
