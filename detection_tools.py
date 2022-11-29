@@ -476,7 +476,7 @@ def string_update(target, distance, rotation, count):
     elif target == "release":
         count -= 5
     elif target == "forward":
-        count -= 4
+        count -= 5
     elif target == "reverse":
         count -= 5
     elif target == "detect":
