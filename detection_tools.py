@@ -14,7 +14,7 @@ D = np.array([[-0.05470334257497442], [-0.09142371384400942], [0.179669068210728
 
 
 # ARUCO dictionary (stores the IDs and patterns for all aruco markers) - is references when we initialise which ArUco marker type
-# the robot has 
+#  - the robot has 
 ARUCO_DICT = {
 	"DICT_4X4_50": cv2.aruco.DICT_4X4_50,
 	"DICT_4X4_100": cv2.aruco.DICT_4X4_100,
@@ -274,19 +274,6 @@ def mask(frame):
     mask = cv2.inRange(img, lower_white, upper_white)
     return mask
 
-def route(x, y, target_x, target_y):
-    dx = target_x - x
-    dy = target_y - y
-    distance = np.sqrt(dx**2 + dy**2)
-    heading = np.arctan(dx / dy) * 180 / np.pi
-    if dy < 0 and dx >= 0:
-        heading = 180 + heading
-    if dy < 0 and dx < 0:
-        heading = 180 + heading
-    if dy >= 0 and dx < 0:
-        heading = 360 + heading
-    return distance, heading 
-
 # returns the distance to and relative angle between the target and the robot pose
 
 def dir_head(target_x, target_y, arrow_x, arrow_y, arrow_angle):
@@ -311,6 +298,7 @@ def dir_head(target_x, target_y, arrow_x, arrow_y, arrow_angle):
     rotation += 90
     return distance, rotation   
 
+# Returns a sorted array of centers for the blue blocks (the ones closest to the left wall are in the beginning)
 def blue_blocks_start(img):
     x = np.array([310, 725])
     y = np.array([525, 690])
@@ -322,6 +310,7 @@ def blue_blocks_start(img):
             true_centres.append((int(centre[0]), int(centre[1])))
     return sorted(true_centres, key = lambda x: x[0])
 
+# Simple average distance finding function (high density blocks are not detectable by the US sensor)
 def detect_block(dec_val_list, thresh): 
     avg_dist = sum(dec_val_list)/len(dec_val_list)
     isLowDensity = False
@@ -334,11 +323,13 @@ def detect_block(dec_val_list, thresh):
 
     return isLowDensity
 
+# Ultrasound reading poll command
 def ultrasound_read(ser): 
     ser.write(b"4")
     raw_read = ser.read(2)
     return raw_read
 
+# INITIALIZATION PERIOD FOR MARKER IDENTIFICATION
 ##################################################
 
 def initialise(cap, theta, show = False):
@@ -397,7 +388,9 @@ def initialise(cap, theta, show = False):
     
     cv2.destroyAllWindows()
     return rp, gp, c1, c2, c3, c4, tt1, tt2
+#########################################################################
 
+# Returns pose centers, orientation, and position of current and last blocks
 def vision(cap, theta, phase, block):
     for i in range(6):
         cap.grab()
@@ -419,6 +412,7 @@ def vision(cap, theta, phase, block):
     Cx, Cy, angle = get_pose(corners, ids)
     return Cx, Cy, angle, fix_frame, block, last_block
 
+# For non-coordinate targets - we wish to execute a routine instead - the following dictates the serial commands for each
 def string_target(target, Cx, Cy):
     command = None
     if target == "forward":
@@ -435,7 +429,9 @@ def string_target(target, Cx, Cy):
         command = "4"
     return target, command
 
-def get_command(target, Cx, Cy, angle, prev_rotation, count, thresh = 5, x = 0.6):
+# Defines the commands for the robot in relation to the target
+
+def get_command(target, Cx, Cy, angle, prev_rotation, nudge_count, thresh = 5, x = 0.7):
     command = None
     distance, rotation = 0, 0
     if type(target) is str:
@@ -443,19 +439,25 @@ def get_command(target, Cx, Cy, angle, prev_rotation, count, thresh = 5, x = 0.6
 
     if command is None:   
         if Cx == 0 and Cy == 0 and angle == 0:
+            # These are base initial conditions (means the robot hasnt been initialised yet)
             pass
         else:
             distance, rotation = dir_head(target[0], target[1], Cx, Cy, angle)    
             if rotation > 180:
                 rotation = rotation - 360
             
+            # If the robot is very close to the target angle - damping will mean it essentially slows to a creep
+            # we add a count factor to nudge the robot out
             if abs(rotation - prev_rotation) <= 0.1: 
-                count += 1
+                nudge_count += 1
     
             else: 
-                count = 0
+                nudge_count = 0
 
-            speed = int(abs(rotation) * 255/ 180 * x + 255 * (1 - x) + 10*count)
+            speed = int(abs(rotation) * 255/ 180 * x + 255 * (1 - x) + 10*nudge_count)
+
+            # To prevent wrap around error - if the speed is 256 - then the arduino reads 0
+            speed = min(255, speed)
             speed = f"{speed:03d}"
 
                 
@@ -465,9 +467,9 @@ def get_command(target, Cx, Cy, angle, prev_rotation, count, thresh = 5, x = 0.6
                 command = "110" + speed
             else:
                 command = "111255"
-                count = 0
+                nudge_count = 0
 
-    return command, distance, rotation, count
+    return command, distance, rotation, nudge_count
 
 def string_update(target, distance, rotation, count):
     update = 0
@@ -492,6 +494,7 @@ def string_update(target, distance, rotation, count):
     return update, count
 
 
+# Method to notify the program when the robot has reached the target
 def update_handler(target, distance, rotation, count):
     update = 0
     if type(target) is str:
@@ -503,6 +506,7 @@ def update_handler(target, distance, rotation, count):
         count = 100
     return update, count
 
+# GUI elements for ease of debugging and visual analysis
 def GUI(fix_frame, stable, target, block, Cx, Cy):
     rp, gp, c1, c2, c3, c4, tt1, tt2 = stable
     corners, ids, _ = cv2.aruco.detectMarkers(fix_frame, arucoDict, parameters = arucoParams)
