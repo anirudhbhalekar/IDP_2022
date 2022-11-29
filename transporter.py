@@ -3,6 +3,7 @@ import detection_tools as dt
 import numpy as np
 import cv2
 import time
+import keyboard
 import serial
 ##############################################
 
@@ -32,9 +33,15 @@ dist_list = []
 stable = ((709, 152), (317, 152), (247, 201), (251, 610), (779, 619), (790, 205), (801, 328), (795, 503))
 rp, gp, c1, c2, c3, c4, tt1, tt2 = stable
 
-home = (np.average(rp[0], gp[0]), np.average(rp[1] + gp[1]) - 50)
+before_home = (int((rp[0] + gp[0])/2), gp[1])
+home = (int((rp[0] + gp[0])/2), gp[1] - 90)
 c1f = (c1[0] - phase1_fudge, c1[1])
 c2f = (c2[0] - phase1_fudge, c2[1])
+
+final_target = c1f
+penultimate_target = c1f
+
+ramp_m = (int((c1f[0] + c2f[0])/2), int((c1f[1] + c2f[1])/2) - 20)
 block, last_block = (0, 0), (0,0)
 xp = (0, 0)
 
@@ -52,15 +59,17 @@ ser.write(serial_data)
 
 
 while cap.isOpened(): 
-    Cx, Cy, angle, fix_frame, block, last_block = dt.vision(cap, theta, phase, block)
+    Cx, Cy, angle, fix_frame, block, last_block = dt.vision(cap, theta, phase, block, last_block)
 
-    avoid_target = (last_block[0], last_block[1] - 50)
-    target_list = [c1f, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", avoid_target, c3, 
-    (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "line_up", "forward", (c4[0] + 25, c4[1]), c4, xp, (xp[0], xp[1] - 50), "release", "reverse"]
+    avoid_target = (last_block[0], last_block[1] - 75)
+    target_list = [c1f, ramp_m, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", avoid_target, c3, 
+    (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 12, tt2[1] + 40), "line_up", "line_up", "forward", (c4[0] + 25, c4[1]), c4, xp, (xp[0], xp[1] - 50), "release", "reverse", 
+    penultimate_target, final_target]
     #target_list =  ["grab", "detect", xp, (xp[0], xp[1] - 50), "release", "reverse", c1]
     target = target_list[phase]
 
     command, distance, rotation, nudge_counter = dt.get_command(target, Cx, Cy, angle, prev_rotation, nudge_counter)
+    prev_rotation = rotation
     update, count = dt.update_handler(target, distance, rotation, count)
 
     if update == 1:
@@ -69,7 +78,7 @@ while cap.isOpened():
 
         if target == "detect":
             try:
-                isLowDensity = dt.detect_block(dist_list, 15)
+                isLowDensity = dt.detect_block(dist_list, 35)
             except ZeroDivisionError:
                 isLowDensity = False
             print(isLowDensity)
@@ -79,7 +88,7 @@ while cap.isOpened():
                 command = "311"
             else:
                 xp = gp
-                command = "321"
+                command = "301"
 
             for i in range(100):
                 cap.grab()
@@ -90,7 +99,7 @@ while cap.isOpened():
                 command = "310"
             else:
                 xp = gp
-                command = "320"
+                command = "300"
         
         dist_list = []
             
@@ -129,7 +138,14 @@ while cap.isOpened():
         cv2.imshow('stream', fix_frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        target_list.append(home)
         
+        ser.write(bytes("0", encoding='utf8'))
+        break
 
-print("Home")
+    if keyboard.is_pressed('h'):
+        final_target = home
+        penultimate_target = before_home
+        print("pressed")
+        print("GOING HOME")
+
+print("FINISHED")

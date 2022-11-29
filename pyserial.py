@@ -12,7 +12,7 @@ timeout = ser.timeout
 ser.timeout = 2
 dec_val_list = []
 
-writeMode = 1
+writeMode = 0
 
 print('Enter your commands below.\r\nInsert "exit" to leave the application.')
 data_in = 1

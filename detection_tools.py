@@ -312,14 +312,16 @@ def blue_blocks_start(img):
 
 # Simple average distance finding function (high density blocks are not detectable by the US sensor)
 def detect_block(dec_val_list, thresh): 
-    avg_dist = sum(dec_val_list)/len(dec_val_list)
-    isLowDensity = False
-
-    if avg_dist < thresh: 
-        # This means the block is low density (detectable)
-        isLowDensity = True
-    else: 
-        isLowDensity = False
+    isLowDensity = False 
+    average = sum(dec_val_list)/len(dec_val_list)
+    try: 
+        if average < thresh: 
+            # This means the block is low density (detectable)
+            isLowDensity = True
+        else: 
+            isLowDensity = False
+    except: 
+        pass 
 
     return isLowDensity
 
@@ -391,7 +393,7 @@ def initialise(cap, theta, show = False):
 #########################################################################
 
 # Returns pose centers, orientation, and position of current and last blocks
-def vision(cap, theta, phase, block):
+def vision(cap, theta, phase, block, last_block):
     for i in range(6):
         cap.grab()
             
@@ -404,8 +406,9 @@ def vision(cap, theta, phase, block):
     
     if phase == 0 or block == (0, 0):
         try:
-            block = blue_blocks_start(fix_frame)[0]
-            last_block = blue_blocks_start(fix_frame)[-1]
+            block_list = blue_blocks_start(fix_frame)
+            block = block_list[0]
+            last_block = block_list[-1]
         except IndexError:
             pass
 
@@ -448,7 +451,7 @@ def get_command(target, Cx, Cy, angle, prev_rotation, nudge_count, thresh = 5, x
             
             # If the robot is very close to the target angle - damping will mean it essentially slows to a creep
             # we add a count factor to nudge the robot out
-            if abs(rotation - prev_rotation) <= 0.1: 
+            if abs(rotation - prev_rotation) <= 1: 
                 nudge_count += 1
     
             else: 
