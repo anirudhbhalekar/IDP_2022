@@ -313,15 +313,17 @@ def blue_blocks_start(img):
 # Simple average distance finding function (high density blocks are not detectable by the US sensor)
 def detect_block(dec_val_list, thresh): 
     isLowDensity = False 
-    average = sum(dec_val_list)/len(dec_val_list)
+
+    min_list = dec_val_list
     try: 
-        if average < thresh: 
-            # This means the block is low density (detectable)
-            isLowDensity = True
-        else: 
-            isLowDensity = False
+        avg = sum(min_list)/len(min_list)
     except: 
-        pass 
+        avg = 255
+    if avg < thresh: 
+        # This means the block is low density (detectable)
+        isLowDensity = True
+    else: 
+        isLowDensity = False
 
     return isLowDensity
 
@@ -485,7 +487,7 @@ def string_update(target, distance, rotation, count):
     elif target == "reverse":
         count -= 5
     elif target == "detect":
-        count -= 10
+        count -= 12.5
     elif target == "line_up":
         if abs(rotation) < 0.1:
             update = 1

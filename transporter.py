@@ -25,7 +25,7 @@ theta = 83.5
 #theta = 88
 prev_angle = 90
 phase1_fudge = 30
-x, y, angle, rotation, phase, count = 0, 0, 0, 0, 0, 100
+x, y, angle, rotation, phase, count = 0, 0, 0, 0, 3, 100
 prev_rotation, prev_distance, nudge_counter = 0, 0, 0
 dist_list = []
 ##############################################
@@ -41,7 +41,7 @@ c2f = (c2[0] - phase1_fudge, c2[1])
 final_target = c1f
 penultimate_target = c1f
 
-ramp_m = (int((c1f[0] + c2f[0])/2), int((c1f[1] + c2f[1])/2) - 20)
+ramp_m = (int((c1f[0] + c2f[0])/2) - 10, int((c1f[1] + c2f[1])/2))
 block, last_block = (0, 0), (0,0)
 xp = (0, 0)
 
@@ -118,10 +118,14 @@ while cap.isOpened():
         if len(splice_read) > 0:
             try: 
                 dec_val = int(splice_read, base=16)
-                dist_list.append(dec_val)
-                print(dec_val)
+                print(dec_val) 
+                print(dec_val == "")
+                if dec_val is not None: 
+                    dist_list.append(dec_val)
+                else: 
+                    dist_list.append(255)
             except: 
-                count += 10
+                count += 12.5
     
     if target == home and update == 1:
         ser.write(bytes("0", encoding='utf8'))
