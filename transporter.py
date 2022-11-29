@@ -25,7 +25,7 @@ theta = 83.5
 prev_angle = 90
 phase1_fudge = 30
 x, y, angle, rotation, phase, count = 0, 0, 0, 0, 0, 100
-prev_rotation, prev_distance = 0, 0
+prev_rotation, prev_distance, nudge_counter = 0, 0, 0
 dist_list = []
 ##############################################
 #stable = dt.initialise(cap, theta, True)
@@ -58,11 +58,8 @@ while cap.isOpened():
     #target_list =  ["grab", "detect", xp, (xp[0], xp[1] - 50), "release", "reverse", c1]
     target = target_list[phase]
 
-    command, distance, rotation = dt.get_command(target, Cx, Cy, angle)
+    command, distance, rotation, nudge_counter = dt.get_command(target, Cx, Cy, angle, prev_rotation, nudge_counter)
     update, count = dt.update_handler(target, distance, rotation, count)
-
-    print(target)
-    print(count)
 
     if update == 1:
         count = 100

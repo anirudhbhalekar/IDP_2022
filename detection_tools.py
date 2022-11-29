@@ -434,7 +434,7 @@ def string_target(target, Cx, Cy):
         command = "4"
     return target, command
 
-def get_command(target, Cx, Cy, angle, thresh = 5, x = 0.6):
+def get_command(target, Cx, Cy, angle, prev_rotation, count, thresh = 5, x = 0.6):
     command = None
     distance, rotation = 0, 0
     if type(target) is str:
@@ -448,17 +448,25 @@ def get_command(target, Cx, Cy, angle, thresh = 5, x = 0.6):
             if rotation > 180:
                 rotation = rotation - 360
             
-            speed = int(abs(rotation) * 255/ 180 * x + 255 * (1 - x))
+            if abs(rotation - prev_rotation) <= 0.1: 
+                count += 1
+    
+            else: 
+                count = 0
+                
+            speed = int(abs(rotation) * 255/ 180 * x + 255 * (1 - x) + 10*count)
             speed = f"{speed:03d}"
 
+                
             if rotation < -1 * thresh:
                 command = "101" + speed
             elif rotation > thresh:
                 command = "110" + speed
             else:
                 command = "111255"
+                count = 0
 
-    return command, distance, rotation
+    return command, distance, rotation, count
 
 def string_update(target, distance, rotation, count):
     update = 0
