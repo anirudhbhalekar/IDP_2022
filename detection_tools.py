@@ -287,6 +287,8 @@ def route(x, y, target_x, target_y):
         heading = 360 + heading
     return distance, heading 
 
+# returns the distance to and relative angle between the target and the robot pose
+
 def dir_head(target_x, target_y, arrow_x, arrow_y, arrow_angle):
     distance, rotation = 500,0
     target = (target_x, target_y)
@@ -295,7 +297,9 @@ def dir_head(target_x, target_y, arrow_x, arrow_y, arrow_angle):
     if target is not None and arrow is not None: 
         #print(target, " ", arrow)
         delta = target - arrow
+        # linear distance function
         distance = np.sqrt(np.sum(np.square(delta)))
+        # arctangent
         angle = math.atan(delta[1] / delta[0]) * 180 / math.pi
 
         if delta[0] < 0:
