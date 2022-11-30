@@ -25,7 +25,7 @@ theta = 83.5
 #theta = 88
 prev_angle = 90
 phase1_fudge = 30
-x, y, angle, rotation, phase, count = 0, 0, 0, 0, 3, 100
+x, y, angle, rotation, phase, count = 0, 0, 0, 0, 0, 100
 prev_rotation, prev_distance, nudge_counter = 0, 0, 0
 dist_list = []
 ##############################################
@@ -62,11 +62,16 @@ while cap.isOpened():
     Cx, Cy, angle, fix_frame, block, last_block = dt.vision(cap, theta, phase, block, last_block)
 
     avoid_target = (last_block[0], last_block[1] - 75)
+        
     target_list = [c1f, ramp_m, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", avoid_target, c3, 
     (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 12, tt2[1] + 40), "line_up", "line_up", "forward", (c4[0] + 25, c4[1]), c4, xp, (xp[0], xp[1] - 50), "release", "reverse", 
     penultimate_target, final_target]
     #target_list =  ["grab", "detect", xp, (xp[0], xp[1] - 50), "release", "reverse", c1]
     target = target_list[phase]
+
+    if block == last_block and target == avoid_target:
+        phase += 1
+        target = target_list[phase]
 
     command, distance, rotation, nudge_counter = dt.get_command(target, Cx, Cy, angle, prev_rotation, nudge_counter)
     prev_rotation = rotation
@@ -125,7 +130,10 @@ while cap.isOpened():
                 else: 
                     dist_list.append(255)
             except: 
-                count += 12.5
+                count += 10
+
+        if len(splice_read) >= 2:
+            count = -1
     
     if target == home and update == 1:
         ser.write(bytes("0", encoding='utf8'))
