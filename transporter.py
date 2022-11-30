@@ -33,7 +33,7 @@ dist_list = []
 stable = ((709, 152), (317, 152), (247, 201), (251, 610), (779, 619), (790, 205), (801, 328), (795, 503))
 rp, gp, c1, c2, c3, c4, tt1, tt2 = stable
 
-before_home = (int((rp[0] + gp[0])/2), gp[1])
+before_home = (int((rp[0] + gp[0])/2), gp[1] + 20)
 home = (int((rp[0] + gp[0])/2), gp[1] - 90)
 c1f = (c1[0] - phase1_fudge, c1[1])
 c2f = (c2[0] - phase1_fudge, c2[1])
@@ -64,7 +64,7 @@ while cap.isOpened():
     avoid_target = (last_block[0], last_block[1] - 75)\
 
     target_list = [c1f, ramp_m, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", avoid_target, c3, 
-    (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "line_up", "forward", (c4[0] + 25, c4[1]), c4, xp, (xp[0], xp[1] - 50), "release", "reverse", 
+    (tt2[0] + 12, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "line_up", "forward", (c4[0] + 25, c4[1]), c4, xp, (xp[0], xp[1] - 50), "release", "reverse", 
     penultimate_target, final_target]
     #target_list =  ["detect"]
     target = target_list[phase]
