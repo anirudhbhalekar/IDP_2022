@@ -61,10 +61,10 @@ ser.write(serial_data)
 while cap.isOpened(): 
     Cx, Cy, angle, fix_frame, block, last_block = dt.vision(cap, theta, phase, block, last_block)
 
-    avoid_target = (last_block[0], last_block[1] - 75)
-    #target_list = ["detect"]
+    avoid_target = (last_block[0], last_block[1] - 75)\
+
     target_list = [c1f, ramp_m, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", avoid_target, c3, 
-    (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 12, tt2[1] + 40), "line_up", "line_up", "forward", (c4[0] + 25, c4[1]), c4, xp, (xp[0], xp[1] - 50), "release", "reverse", 
+    (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "line_up", "forward", (c4[0] + 25, c4[1]), c4, xp, (xp[0], xp[1] - 50), "release", "reverse", 
     penultimate_target, final_target]
     #target_list =  ["detect"]
     target = target_list[phase]
@@ -83,7 +83,7 @@ while cap.isOpened():
 
         if target == "detect":
             try:
-                isLowDensity = dt.detect_block(dist_list, 35)
+                isLowDensity = dt.detect_block(dist_list, 2)
                 print(isLowDensity)
             except ZeroDivisionError:
                 isLowDensity = False
@@ -121,7 +121,7 @@ while cap.isOpened():
         splice_read = str(raw_read)[4:-1]
         if len(splice_read) > 0:
             try: 
-                dec_val = int(splice_read, base=16)
+                dec_val = int(splice_read, base=32)
                 print(dec_val) 
                 if dec_val is not None: 
                     dist_list.append(dec_val)
