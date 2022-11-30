@@ -481,13 +481,13 @@ def string_update(target, distance, rotation, count):
     if target == "grab":
         count -= 40
     elif target == "release":
-        count -= 5
+        count -= 25
     elif target == "forward":
         count -= 5
     elif target == "reverse":
-        count -= 5
+        count -= 10
     elif target == "detect":
-        count -= 12.5
+        count -= 10
     elif target == "line_up":
         if abs(rotation) < 0.1:
             update = 1
