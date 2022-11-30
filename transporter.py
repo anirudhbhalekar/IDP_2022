@@ -62,11 +62,11 @@ while cap.isOpened():
     Cx, Cy, angle, fix_frame, block, last_block = dt.vision(cap, theta, phase, block, last_block)
 
     avoid_target = (last_block[0], last_block[1] - 75)
-        
+    #target_list = ["detect"]
     target_list = [c1f, ramp_m, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", avoid_target, c3, 
     (tt2[0] + 15, tt2[1] + 70), (tt2[0] + 12, tt2[1] + 40), "line_up", "line_up", "forward", (c4[0] + 25, c4[1]), c4, xp, (xp[0], xp[1] - 50), "release", "reverse", 
     penultimate_target, final_target]
-    #target_list =  ["grab", "detect", xp, (xp[0], xp[1] - 50), "release", "reverse", c1]
+    #target_list =  ["detect"]
     target = target_list[phase]
 
     if block == last_block and target == avoid_target:
@@ -84,10 +84,9 @@ while cap.isOpened():
         if target == "detect":
             try:
                 isLowDensity = dt.detect_block(dist_list, 35)
+                print(isLowDensity)
             except ZeroDivisionError:
                 isLowDensity = False
-            print(isLowDensity)
-            print(dist_list)
             if isLowDensity:
                 xp = rp
                 command = "311"
@@ -95,7 +94,7 @@ while cap.isOpened():
                 xp = gp
                 command = "301"
 
-            for i in range(100):
+            for i in range(10):
                 cap.grab()
 
         if target == "release":
@@ -117,22 +116,23 @@ while cap.isOpened():
         phase += 1
 
     if target == "detect":
-        raw_read = ser.read(2)
+        raw_read = ser.read(4)
+        print(raw_read)
         splice_read = str(raw_read)[4:-1]
-        #print(raw_read)
         if len(splice_read) > 0:
             try: 
                 dec_val = int(splice_read, base=16)
                 print(dec_val) 
-                print(dec_val == "")
                 if dec_val is not None: 
                     dist_list.append(dec_val)
+                    print(dec_val)
                 else: 
                     dist_list.append(255)
             except: 
                 count += 10
 
-        if len(splice_read) >= 2:
+
+        if len(dist_list) >= 2:
             count = -1
     
     if target == home and update == 1:

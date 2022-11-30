@@ -312,13 +312,14 @@ def blue_blocks_start(img):
 
 # Simple average distance finding function (high density blocks are not detectable by the US sensor)
 def detect_block(dec_val_list, thresh): 
-    isLowDensity = False 
+    print(dec_val_list)
 
     min_list = dec_val_list
     try: 
         avg = sum(min_list)/len(min_list)
     except: 
         avg = 255
+
     if avg < thresh: 
         # This means the block is low density (detectable)
         isLowDensity = True
