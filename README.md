@@ -71,7 +71,7 @@ Serial testing to see how block detection works
 
 -----------------------------------------------------------------------------------------
 
-*Method Descriptions*
+**Method Descriptions**
 
 Structure: 
 
