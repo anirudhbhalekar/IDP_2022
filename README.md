@@ -1,4 +1,5 @@
 # IDP_2022
+
 Team 201 - IDP software repository
 
 First Competition Score: 25
@@ -10,12 +11,12 @@ Final Competition Score: 60
 Description of files included: 
 
 -----------------------------------------------------------------------------------------
-BLE_vari_motor.txt 
+*BLE_vari_motor.txt* 
 
 A text file with the arduino code (this is uploaded to the arduino)
 
 -----------------------------------------------------------------------------------------
-stream_test.py  
+*stream_test.py*  
 
 This a collection of methods that deals with the raw stream, it has methods for masking, 
 undistortion, rotation, and edge detection. 
@@ -26,7 +27,7 @@ zones, and plotting those markers.
 There is also a marker stabilisation algorithm and some distance and pose finding functions
 
 -----------------------------------------------------------------------------------------
-detection_tools.py 
+*detection_tools.py* 
 
 Collection of methods for detection of ArUco markers (this means getting the pose and heading)
 
@@ -43,12 +44,12 @@ Update handling for serial communication
 GUI initialisation and plotting
 
 -----------------------------------------------------------------------------------------
-vis_tools.py
+*vis_tools.py*
 
 Some tools for GUI elements (bounding boxes and arrows) 
 
 -----------------------------------------------------------------------------------------
-transporter.py
+*transporter.py*
 
 This intialises the target list and then iterates over the robot transport sequence
 
@@ -61,7 +62,7 @@ Block detection protocol
 RUN TO MAKE ROBOT WORK
 
 -----------------------------------------------------------------------------------------
-pyserial.py 
+*pyserial.py* 
 
 TEST FILE
 
