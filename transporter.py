@@ -61,7 +61,7 @@ ser.write(serial_data)
 while cap.isOpened(): 
     Cx, Cy, angle, fix_frame, block, last_block = dt.vision(cap, theta, phase, block, last_block)
 
-    avoid_target = (last_block[0], last_block[1] - 75)\
+    avoid_target = (last_block[0], last_block[1] - 75)
 
     target_list = [c1f, ramp_m, c2f, (block[0] - 100, block[1] + 11), (block[0], block[1] + 11), "grab", "detect", avoid_target, c3, 
     (tt2[0] + 12, tt2[1] + 70), (tt2[0] + 15, tt2[1] + 40), "line_up", "line_up", "forward", (c4[0] + 25, c4[1]), c4, xp, (xp[0], xp[1] - 50), "release", "reverse", 
