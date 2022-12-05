@@ -13,6 +13,7 @@ theta2 = 0
 #theta2 = 4 
 theta = 83.5 + theta2
 
+# Camera parameters for distortion and the camera matrix + dimensions
 DIM=(1016, 760)
 K= np.array([[567.4130565572482, 0.0, 501.39791714355], [0.0, 567.3325405728447, 412.9039077874256], [0.0, 0.0, 1.0]])
 D=np.array([[-0.05470334257497442], [-0.09142371384400942], [0.17966906821072895], [-0.08708720575337928]])
@@ -45,10 +46,12 @@ def undistort(img, balance=0.0, dim2=None, dim3=None):
     
     return undistorted_img
 
+# edge detection
 def detect_edge(image):
     edges = cv2.Canny(image, 100, 200)
     return edges
 
+# mask creation for white path lines
 def mask(frame):
     img =  (cv2.cvtColor(frame, cv2.COLOR_BGR2HSV_FULL))
     sensitivity = 40    
@@ -83,25 +86,7 @@ def region_of_interest(edges, top_height_parameter = 0.2, bot_height_parameter =
 
     return cropped_edges
 
-def detect_corners(frame, superimpose): 
-
-    corners = np.zeros_like(frame)
-    if frame is not None:   
-        corners= cv2.goodFeaturesToTrack(frame, 30, 0.01, 35)
-    corner_arr = []
-    l = 5
-    if corners is not None: 
-        for corner in corners:
-            x,y= corner[0]
-            x= int(x)
-            y= int(y)
-            corner_arr.append((x,y))
-            superimpose = cv2.rectangle(superimpose, (x-l,y-l),(x+l,y+l),(255,0,0),-1)
-    
-
-    dst = superimpose 
-    return dst, corner_arr
-
+# creation of houghlines (based on edges detected from white path lines)
 def houghline(frame, minL):
     rho = 1 # Pixel precision value
     angle = np.pi/180 # radian precision value 
@@ -112,27 +97,34 @@ def houghline(frame, minL):
     
     return line_segments
 
+# plot lanes (houghlines) - this is for testing and visualisation purposes
 def plot_lanes(superimpose, lines, color = (250,150,0), l_width = 2, thresh = 1.01):
     corner_line_arr = []
     zone_line_arr = []
 
+    # We initialise a corner and zone array to store corner and zone points
     h,w = superimpose.shape[0], superimpose.shape[1]
 
     if lines is not None: 
         for line_seg in lines: 
             for x1, y1, x2, y2 in line_seg:                                
                 line_color = color
+                # ignores divide by zero errors
                 if max(x2,x1)/min(x1,x2) > thresh: 
                     grad = (y2 - y1)/(x2 - x1)
+
+                    # this means the abs value of the gradient is about 1 (corner)
                     if abs(grad) < 1.5 and abs(grad) > 0.5: 
-                        line_color = (0,0,255)
-                        corner_line_arr.append(line_seg)
+                        line_color = (0,0,255) # changes the color of that marker
+                        corner_line_arr.append(line_seg) # adds it to the corner array
                     
                 if max(y2,y1)/min(y2,y1) > thresh:
                     grad = (x2 - x1)/(y2 - y1)
+                    # ignores grad being infty 
+                    # if the gradient is near vertical (or the inverse is about 0) and the marker is in the upper 25% of the image
                     if abs(grad) < 0.1 and min(y2,y1) < h/4: 
                         line_color = (100,50,100)
-                        zone_line_arr.append(line_seg)
+                        zone_line_arr.append(line_seg) # adds it to the zone array
                     
 
                 
@@ -144,17 +136,12 @@ def plot_lanes(superimpose, lines, color = (250,150,0), l_width = 2, thresh = 1.
     #line_image = cv2.addWeighted(frame, 0.9, line_image, 1, 1)  
     return line_image, corner_line_arr, zone_line_arr
 
+# filtering 
 def filter_crop(image): 
     img = region_of_interest(mask(image))
     return img
 
-def find_pink_arrow(undistorted_img, edge):
-    upper = np.array([165, 255, 255])
-    lower = np.array([155, 50,	160])
-    single_colour = detect_colour(undistorted_img, upper, lower) * edge
-    centre, angle = detect_objects(single_colour, 100, 10000)
-    return centre[0][0][0], centre[0][0][1], angle[0]
-
+# color detection for any arbitrary color
 def detect_colour(img, upper, lower, ret_colour = False):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lower, upper)
@@ -163,6 +150,7 @@ def detect_colour(img, upper, lower, ret_colour = False):
     else:
         return np.expand_dims(mask, -1) * img
 
+# object detection from contour image (applies to specific colors)
 def detect_obj(contours):
     data = np.array(contours[:, 0, :], dtype = np.float64)
     initial = np.empty((0))
@@ -183,6 +171,7 @@ def detect_objects(binary_img, min_area = 0, max_area = 999999):
             angle_list.append(angle)
     return mean_list, angle_list
 
+# plots a point
 def plot_point(image, coords, color = (0,255,0)): 
     l = 5
     if coords is not None: 
@@ -192,6 +181,7 @@ def plot_point(image, coords, color = (0,255,0)):
  
     return image
 
+# plots a rectangle
 def plot_rectangle(img, l = 10, coords = (100,100)):
 
     h,w = img.shape[1], img.shape[0]
@@ -201,23 +191,27 @@ def plot_rectangle(img, l = 10, coords = (100,100)):
 
     return img
 
+# plots a vertical line
 def plot_vline(img, x): 
     h,w = img.shape[0], img.shape[1]
     img = cv2.line(img, (x,0),(x,h), color=(0,0,255), thickness=2)
 
     return img
 
+# plots a horizontal line
 def plot_hline(img, y): 
     h,w = img.shape[0], img.shape[1]    
     img = cv2.line(img, (0,y),(w,y), color=(0,0,255), thickness=2)
 
     return img
 
+# finds the corner markers in an ordered fashion
 def find_markers(img,lines):
     h,w = img.shape[0], img.shape[1]
     m1,m2,m3,m4 = None, None, None, None
     if lines is not None:
         for line in lines: 
+            # for each quadrant of the image (it iterates over the corner array found earlier)
             for x1,y1,x2,y2 in line:
                 if x1 <= int(w/2) and y1 <= int(h/2):
                     m1 = (int((x1+x2)/2),int((y1+y2)/2))
@@ -231,6 +225,7 @@ def find_markers(img,lines):
         
     return m1,m2,m3,m4
 
+# finds the red and green zones
 def find_zones(img, zone_array):
     
     h,w = img.shape[0], img.shape[1]
@@ -252,6 +247,9 @@ def find_zones(img, zone_array):
             
     return g,r 
 
+# finds the tunnel markers 
+# (the exit of the tunnel is the lowest vertical line point in the upper right quadrant)
+# (the entrance of the tunnel is the highest vertical line point in the lower right quadrant) 
 def tunnel_marker(img, all_lines): 
 
     h,w = img.shape[0], img.shape[1]
@@ -277,6 +275,11 @@ def tunnel_marker(img, all_lines):
                         z_min = y_m
         
     return max_y, min_y
+
+# Marker stabilisation algorithm 
+# takes the current and previous values and returns a value that is an interpolation between the two 
+# it will divide the interpolation by the count so as the count increases the marker 'stabilizes'
+# requires that there is a sequence of uninterrupter footage for the markers to get a solid position and estimation of ground truth
 
 def stable_marker(curr_markers, prev_markers, count):
     
@@ -304,6 +307,7 @@ def stable_marker(curr_markers, prev_markers, count):
 
             return (xn,yn)
 
+# simple distance function
 def distance(coord1,coord2):
     d = -1
     if coord1 and coord2 is not None: 
