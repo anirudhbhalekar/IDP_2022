@@ -307,6 +307,8 @@ void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
   // if the command is 110 - turns right
 
   if(action == 1){
+    digitalWrite(4, 1);
+
     int motor_speed = 100 * (tmp[3] - 48) + 10 * (tmp[4] - 48) + tmp[5] - 48;
     Serial.println(motor_speed);
     left_motor->setSpeed(motor_speed * 0.97);
@@ -325,6 +327,10 @@ void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
     else {
       right_motor->run(BACKWARD);
     }
+  }
+
+  else {
+    digitalWrite(4, 0);
   }
   
   // if the action is 2 - this is a grab command (if the next char is 1 - it closes, else it opens and releases the block)

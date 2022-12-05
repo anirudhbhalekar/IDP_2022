@@ -489,6 +489,7 @@ def get_command(target, Cx, Cy, angle, prev_rotation, nudge_count, thresh = 5, x
     return command, distance, rotation, nudge_count
 
 # These counters set a timer (how many loops will happen for a given command)
+# or for line_up only proceed when rotation is sufficiently low
 def string_update(target, distance, rotation, count):
     update = 0
     if target == "grab":
