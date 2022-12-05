@@ -389,10 +389,15 @@ void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
   //Serial.println(action);
   //Serial.println(tmp);
   
+  // if the input char is 0 - the robot stops
   if (action == 0){
     right_motor->run(RELEASE);
     left_motor->run(RELEASE);
   }
+
+  // if the input char is 1 - this is a drive command, it either goes forward (111) 
+  // if the command is 101 - turns left
+  // if the command is 110 - turns right
 
   if(action == 1){
     int motor_speed = 100 * (tmp[3] - 48) + 10 * (tmp[4] - 48) + tmp[5] - 48;
@@ -415,6 +420,8 @@ void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
     }
   }
   
+  // if the action is 2 - this is a grab command (if the next char is 1 - it closes, else it opens and releases the block)
+
   if (action == 2){
     if (tmp[1] - 48 == 0){
       rotate_arm(60, 100);
@@ -424,12 +431,14 @@ void onRxCharValueUpdate(BLEDevice central, BLECharacteristic characteristic) {
     }
   }
 
+  // if action is 3 - it tells which LED to turn on based on which block is detected
   if (action == 3){
       int pin = 2 + 2 * (tmp[1] - 48);
       int instruction = tmp[2] - 48;
       digitalWrite(pin, instruction);
   }
 
+  // if action is 4 - it pauses and writes back to host laptop (from data from the US) using the transmitter pin (txchar)
   if (action == 4){
     // write ultrasound data
     getDistance(); 
