@@ -259,7 +259,7 @@ def region_of_interest(edges):
 
     return cropped_edges
 
-# Canny edge detection
+# Canny edge detection (will spit out an image with just lines) 
 def detect_edge(image):
     edges = cv2.Canny(image, 200, 400)
     return edges
@@ -275,7 +275,6 @@ def mask(frame):
     return mask
 
 # returns the distance to and relative angle between the target and the robot pose
-
 def dir_head(target_x, target_y, arrow_x, arrow_y, arrow_angle):
     distance, rotation = 500,0
     target = (target_x, target_y)
@@ -419,6 +418,14 @@ def vision(cap, theta, phase, block, last_block):
     return Cx, Cy, angle, fix_frame, block, last_block
 
 # For non-coordinate targets - we wish to execute a routine instead - the following dictates the serial commands for each
+# The first character is the action integer (this is then relayed to identify what the robot does in the arduino code)
+# The next characters define what the motors do : e.g a 111--- means that the robot executes action 1 with both motors on
+# e.g a 100--- means the robot executes action 1 and both motors reversing
+# e.g a 2- means the robot executes action 2 
+# The characters after define an additional parameter: 
+# e.g a 111255 means that the robot executes action 1, both motors on at speed 255
+# e.g a 21 means the robot executes action 2, with the servo closing 
+
 def string_target(target, Cx, Cy):
     command = None
     if target == "forward":
@@ -466,9 +473,13 @@ def get_command(target, Cx, Cy, angle, prev_rotation, nudge_count, thresh = 5, x
             speed = min(255, speed)
             speed = f"{speed:03d}"
 
-                
+
+
+            # A 101 means a right turn    
             if rotation < -1 * thresh:
                 command = "101" + speed
+
+            # A 110 means a left turn
             elif rotation > thresh:
                 command = "110" + speed
             else:
@@ -477,6 +488,7 @@ def get_command(target, Cx, Cy, angle, prev_rotation, nudge_count, thresh = 5, x
 
     return command, distance, rotation, nudge_count
 
+# These counters set a timer (how many loops will happen for a given command)
 def string_update(target, distance, rotation, count):
     update = 0
     if target == "grab":
